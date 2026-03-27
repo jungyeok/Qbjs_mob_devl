@@ -1,0 +1,2871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>BuildDeck</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="/socket.io/socket.io.js"></script>
+<!-- xterm.js for real PTY terminal -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.js"></script>
+<!-- CodeMirror -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
+<style>
+:root {
+  --bg:#060b06; --bg2:#0a110a; --bg3:#0e170e; --bg4:#131f13; --bg5:#182418;
+  --border:#1c301c; --border2:#223822;
+  --g1:#00ff88; --g2:#00cc66; --g3:#009944; --g4:#006622; --g5:#003311;
+  --gdim:rgba(0,255,136,0.06); --gdim2:rgba(0,255,136,0.12);
+  --red:#f05060; --yellow:#f0c030; --blue:#40b0ff; --orange:#ff8833; --purple:#a060f0;
+  --text:#c8e8c8; --text2:#5a8a5a; --text3:#2e522e; --text4:#1a331a;
+  --mono:'JetBrains Mono',monospace; --ui:'Inter',sans-serif;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  --radius:10px; --radius-sm:6px;
+  --transition:0.15s ease;
+}
+
+/* ── THEMES ── */
+body.theme-purple-dark{
+  --bg:#07040d;--bg2:#0d0818;--bg3:#120d20;--bg4:#181028;--bg5:#1e1530;
+  --border:#2a1a40;--border2:#3a2255;
+  --g1:#c080ff;--g2:#9944ee;--g3:#7722cc;--g4:#550099;--g5:#330055;
+  --gdim:rgba(160,96,240,0.07);--gdim2:rgba(160,96,240,0.13);
+  --text:#e0c8ff;--text2:#8a5aaa;--text3:#5a3a7a;--text4:#3a1a5a;}
+body.theme-purple-light{
+  --bg:#f5f0ff;--bg2:#ede4ff;--bg3:#e4d8ff;--bg4:#daccff;--bg5:#d0bbff;
+  --border:#c8aaf0;--border2:#b899e8;
+  --g1:#7722cc;--g2:#9944ee;--g3:#aa55ff;--g4:#cc88ff;--g5:#eeddff;
+  --gdim:rgba(119,34,204,0.07);--gdim2:rgba(119,34,204,0.13);
+  --red:#d03050;--text:#220044;--text2:#660099;--text3:#9944cc;--text4:#bb88ee;}
+body.theme-green-light{
+  --bg:#f0fff5;--bg2:#e4ffe8;--bg3:#d8ffd8;--bg4:#ccffcc;--bg5:#aaffcc;
+  --border:#aaeebb;--border2:#88dd99;
+  --g1:#006622;--g2:#009933;--g3:#00bb44;--g4:#00dd55;--g5:#aaffcc;
+  --gdim:rgba(0,102,34,0.07);--gdim2:rgba(0,102,34,0.13);
+  --red:#cc2233;--text:#002211;--text2:#006622;--text3:#009933;--text4:#44bb66;}
+body.theme-hybrid-dark{
+  --bg:#050a0b;--bg2:#090f14;--bg3:#0d1520;--bg4:#111a28;--bg5:#162030;
+  --border:#1a2a30;--border2:#223040;
+  --g1:#00ff88;--g2:#88aaff;--g3:#006644;--g4:#003366;--g5:#001122;
+  --gdim:rgba(0,255,136,0.06);--gdim2:rgba(136,170,255,0.1);
+  --text:#c8e8f8;--text2:#5a8a8a;--text3:#2e5260;--text4:#1a2f3a;}
+body.theme-hybrid-light{
+  --bg:#f0f8ff;--bg2:#e4f4ee;--bg3:#d8eef8;--bg4:#cce8ee;--bg5:#bbddee;
+  --border:#aaccdd;--border2:#88bbcc;
+  --g1:#006644;--g2:#0055aa;--g3:#009966;--g4:#0077cc;--g5:#cceeff;
+  --gdim:rgba(0,102,68,0.07);--gdim2:rgba(0,85,170,0.1);
+  --red:#cc3333;--text:#001122;--text2:#336688;--text3:#558899;--text4:#88aacc;}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--ui);-webkit-font-smoothing:antialiased;font-size:14px}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:var(--safe-t)}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:48px;background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;z-index:60;
+}
+.logo{
+  display:flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:800;color:var(--g1);white-space:nowrap;
+  letter-spacing:-0.3px;
+}
+.logo-mark{
+  width:28px;height:28px;flex-shrink:0;
+  background:var(--g4);border:1px solid var(--g3);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-mark svg{width:16px;height:16px;stroke:var(--g1);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.proj-pill{
+  flex:1;min-width:0;max-width:220px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  height:32px;display:flex;align-items:center;padding:0 8px;gap:6px;
+}
+.proj-pill svg{width:13px;height:13px;stroke:var(--text2);fill:none;flex-shrink:0}
+.proj-pill select{
+  background:none;border:none;outline:none;color:var(--text);
+  font-family:var(--ui);font-size:13px;font-weight:600;flex:1;min-width:0;cursor:pointer;
+}
+.proj-pill select option{background:var(--bg3)}
+.topbar-right{display:flex;align-items:center;gap:6px;margin-left:auto}
+.conn-indicator{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text3)}
+.conn-dot{width:10px;height:10px;border-radius:50%;background:var(--red);transition:all 0.3s;flex-shrink:0;box-shadow:0 0 4px rgba(240,80,96,0.5)}
+.conn-dot.on{background:var(--g1);box-shadow:0 0 8px var(--g1)}
+.conn-label{font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text2)}
+@media(max-width:700px){.conn-label{display:none}}
+.ic-btn{
+  width:32px;height:32px;border-radius:var(--radius-sm);
+  background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);flex-shrink:0;
+}
+.ic-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ic-btn:active{transform:scale(0.91);background:var(--bg4)}
+.ic-btn.accent{background:var(--g4);border-color:var(--g3);color:var(--g1);box-shadow:0 0 10px rgba(0,255,136,0.15)}
+.ic-btn.accent:active{background:var(--g3)}
+.ic-btn:disabled{opacity:0.3;cursor:not-allowed;transform:none}
+
+/* ── LAYOUT ── */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:200px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+}
+.sidebar-nav{padding:8px;flex-shrink:0}
+.ni{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--text2);
+  transition:all var(--transition);margin-bottom:1px;user-select:none;
+}
+.ni:hover{background:var(--bg3);color:var(--text)}
+.ni.active{background:var(--gdim2);color:var(--g1);border:1px solid rgba(0,255,136,0.15)}
+.ni-ic{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nbadge{margin-left:auto;background:var(--g3);color:#000;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:700;font-family:var(--mono)}
+.sdiv{height:1px;background:var(--border);margin:6px 8px}
+.slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:5px 12px}
+
+/* file tree */
+.ftree{font-family:var(--mono);font-size:12px;flex:1;overflow-y:auto;padding:0 8px 8px}
+.ftree::-webkit-scrollbar{width:3px}
+.ftree::-webkit-scrollbar-thumb{background:var(--border2)}
+.fti{
+  display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:5px;
+  cursor:pointer;color:var(--text2);white-space:nowrap;overflow:hidden;
+  user-select:none;transition:background var(--transition);
+}
+.fti:active{background:var(--bg4)}
+.fti.act{background:var(--gdim);color:var(--g1)}
+.fti.fdir{color:var(--yellow)}
+.fti svg{width:12px;height:12px;stroke:currentColor;fill:none;flex-shrink:0}
+.fchev{font-size:8px;transition:transform 0.15s;flex-shrink:0;opacity:0.6}
+.fchev.open{transform:rotate(90deg)}
+.fkids{padding-left:14px}
+.flbl{overflow:hidden;text-overflow:ellipsis;flex:1;font-size:11px}
+
+/* ── BOTTOM NAV (mobile) ── */
+.bnav{display:none;background:var(--bg2);border-top:1px solid var(--border);padding-bottom:var(--safe-b);flex-shrink:0;z-index:60}
+.bnav-in{display:flex;height:52px}
+.bni{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;font-size:10px;font-weight:600;color:var(--text3);
+  transition:all var(--transition);user-select:none;position:relative;
+}
+.bni:active{background:var(--bg3)}
+.bni.active{color:var(--g1)}
+.bni.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--g1);border-radius:0 0 2px 2px}
+.bni svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── CONTENT ── */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel.active{display:flex}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{width:4px}
+.scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── BUTTONS ── */
+.btn{
+  font-family:var(--ui);font-size:13px;font-weight:600;padding:8px 14px;
+  border-radius:var(--radius-sm);border:none;cursor:pointer;
+  transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;
+  white-space:nowrap;user-select:none;
+}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn:active{transform:scale(0.96)}
+.btn:disabled{opacity:0.35;cursor:not-allowed;transform:none}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text3)}
+.btn-ghost:active{background:var(--bg4)}
+.btn-green{background:var(--g4);color:var(--g1);border:1px solid var(--g3);font-weight:700;box-shadow:0 0 10px rgba(0,255,136,0.1)}
+.btn-green:hover{background:var(--g3);color:#000}
+.btn-green:active{background:var(--g2);color:#000}
+.btn-danger{background:rgba(240,80,96,0.08);color:var(--red);border:1px solid rgba(240,80,96,0.2)}
+.btn-danger:active{background:rgba(240,80,96,0.15)}
+.btn-warn{background:rgba(240,192,48,0.08);color:var(--yellow);border:1px solid rgba(240,192,48,0.2)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
+.btn-full{width:100%;justify-content:center}
+
+/* ── FORMS ── */
+.field{margin-bottom:14px}
+.lbl{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:5px}
+.inp,.sel{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--radius-sm);color:var(--text);font-family:var(--ui);
+  font-size:14px;padding:9px 11px;outline:none;transition:border-color var(--transition);
+  -webkit-appearance:none;
+}
+.inp:focus,.sel:focus{border-color:var(--g3);box-shadow:0 0 0 2px rgba(0,153,68,0.15)}
+.sel option{background:var(--bg3)}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-hd{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.card-hd svg{width:14px;height:14px;stroke:var(--g2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── TOGGLE ── */
+.togrow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
+.togrow:last-of-type{border-bottom:none}
+.toglbl{font-size:13px;color:var(--text2)}
+.tog{position:relative;width:38px;height:20px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-t{position:absolute;cursor:pointer;inset:0;background:var(--bg4);border-radius:20px;transition:0.2s;border:1px solid var(--border2)}
+.tog-t:before{content:'';position:absolute;height:14px;width:14px;left:2px;bottom:2px;background:var(--text3);border-radius:50%;transition:0.2s}
+input:checked+.tog-t{background:var(--g4);border-color:var(--g3)}
+input:checked+.tog-t:before{transform:translateX(18px);background:var(--g1);box-shadow:0 0 6px var(--g1)}
+
+/* ── SECTION TITLE ── */
+.sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:600px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.stat-v{font-size:26px;font-weight:800;color:var(--g1);font-family:var(--mono);letter-spacing:-1px}
+.stat-l{font-size:11px;color:var(--text2);margin-top:3px;font-weight:600}
+
+/* ── SYSINFO GAUGES ── */
+.sys-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:640px){.sys-grid{grid-template-columns:repeat(4,1fr)}}
+.gauge-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.gauge-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.gauge-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.gauge-icon svg{width:14px;height:14px;stroke:var(--text3);fill:none;stroke-width:2}
+.gauge-val{font-size:22px;font-weight:800;font-family:var(--mono);color:var(--g1);letter-spacing:-0.5px}
+.gauge-sub{font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gauge-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:10px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.gf-cpu  {background:linear-gradient(90deg,var(--g3),var(--g1))}
+.gf-mem  {background:linear-gradient(90deg,var(--blue),#60c8ff)}
+.gf-disk {background:linear-gradient(90deg,var(--purple),#c080ff)}
+.gf-hot  {background:linear-gradient(90deg,var(--orange),var(--red))!important}
+
+.uptime-strip{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px;margin-bottom:14px;
+  display:flex;align-items:center;gap:12px;
+}
+.uptime-strip svg{width:16px;height:16px;stroke:var(--g2);fill:none;flex-shrink:0}
+.uptime-val{font-size:18px;font-weight:800;color:var(--g1);font-family:var(--mono)}
+.uptime-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.info-chips{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+@media(min-width:600px){.info-chips{grid-template-columns:repeat(3,1fr)}}
+.info-chip{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px}
+.ic-lbl{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.ic-val{font-size:12px;color:var(--text);font-family:var(--mono);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-sys-strip{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.mini-sys-strip::-webkit-scrollbar{display:none}
+.msc{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:7px 12px;flex-shrink:0;display:flex;align-items:center;gap:7px;
+  font-size:12px;font-family:var(--mono);color:var(--text2);
+}
+.msc svg{width:12px;height:12px;stroke:currentColor;fill:none;flex-shrink:0}
+.msc strong{font-weight:700}
+
+/* ── LOG BOX ── */
+.logbox{
+  background:#020802;border:1px solid #0d1d0d;border-radius:var(--radius-sm);
+  padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.75;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.logbox::-webkit-scrollbar{width:3px}
+.logbox::-webkit-scrollbar-thumb{background:#0a2a0a}
+.ll{word-break:break-all;display:block}
+.ll.out  {color:#5aff8a}
+.ll.warn {color:var(--yellow)}
+.ll.bad  {color:var(--red)}
+.ll.ok   {color:var(--g1);font-weight:700}
+.ll.inf  {color:var(--blue)}
+.ll.cmd  {color:var(--purple)}
+.ll.dim  {color:#204020}
+.ll.sep  {color:#0d1d0d;font-size:9px;letter-spacing:1px}
+
+/* ── PROGRESS ── */
+.prog{height:3px;background:var(--bg5);border-radius:2px;overflow:hidden;margin:8px 0}
+.progbar{height:100%;width:0%;border-radius:2px;background:linear-gradient(90deg,var(--g3),var(--g1));transition:width 0.3s}
+.progbar.anim{animation:pb 1.8s ease-in-out infinite alternate}
+.progbar.done{width:100%!important;background:var(--g1);box-shadow:0 0 6px var(--g1);animation:none}
+.progbar.fail{width:100%!important;background:var(--red);animation:none}
+@keyframes pb{from{width:25%}to{width:78%}}
+.build-meta{font-size:11px;color:var(--text2);font-family:var(--mono);display:flex;justify-content:space-between;margin-bottom:4px}
+
+/* APK card */
+.apk-ready{display:none;background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);border-radius:var(--radius);padding:14px;margin-top:12px;align-items:center;gap:12px}
+.apk-ready.show{display:flex}
+.apk-ic-wrap{width:42px;height:42px;background:var(--g4);border:1px solid var(--g3);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.apk-ic-wrap svg{width:20px;height:20px;stroke:var(--g1);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.apk-info{flex:1;min-width:0}
+.apk-name{font-weight:700;color:var(--g1);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apk-sub{font-size:11px;color:var(--text2);margin-top:2px;font-family:var(--mono)}
+
+/* ── EDITOR ── */
+.ebar{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;min-height:42px}
+.ebar::-webkit-scrollbar{display:none}
+.efile{font-family:var(--mono);font-size:12px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.estatus{font-size:11px;font-family:var(--mono);white-space:nowrap;flex-shrink:0}
+.estatus.saved{color:var(--g2)}
+.estatus.unsaved{color:var(--yellow)}
+.evtabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.vt{padding:7px 16px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all var(--transition);user-select:none}
+.vt:active{background:var(--bg3)}
+.vt.active{color:var(--g1);border-bottom-color:var(--g1)}
+.ewrap{flex:1;overflow:hidden}
+.CodeMirror{height:100%!important;font-family:var(--mono)!important;font-size:13px!important;line-height:1.65!important;background:#020802!important;color:#9aeaaa!important}
+.CodeMirror-gutters{background:#040f04!important;border-right:1px solid #0d1d0d!important}
+.CodeMirror-linenumber{color:#2a4a2a!important}
+.CodeMirror-cursor{border-left-color:var(--g1)!important}
+.CodeMirror-selected{background:rgba(0,255,136,0.06)!important}
+.cm-tag,.cm-bracket{color:#00ff88!important}
+.cm-attribute{color:#66ffaa!important}
+.cm-string{color:#88ffcc!important}
+.cm-keyword{color:#00cc66!important}
+.cm-comment{color:#2a4a2a!important;font-style:italic}
+.cm-number{color:#88ff44!important}
+.cm-variable,.cm-variable-2{color:#aaffcc!important}
+.cm-def{color:#00ff88!important}
+.cm-property{color:#77ffaa!important}
+.cm-atom{color:#55ff99!important}
+
+/* preview */
+.pvwrap{flex:1;display:flex;flex-direction:column}
+.pvbar{padding:7px 12px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pvurl{font-family:var(--mono);font-size:11px;color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pviframe{flex:1;border:none;background:#fff}
+
+/* ── BUILD ITEMS / LISTS ── */
+.bitem{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:border-color var(--transition)}
+.bitem:hover{border-color:var(--border2)}
+.bitem-ic{flex-shrink:0;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center}
+.bitem-ic svg{width:15px;height:15px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bitem-info{flex:1;min-width:0}
+.bitem-name{font-weight:700;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+.bitem-meta{font-size:11px;color:var(--text2);margin-top:3px}
+.bitem-acts{display:flex;gap:6px;flex-shrink:0}
+
+/* ── PLUGINS ── */
+.pitem{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
+.pname{font-family:var(--mono);font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis}
+.pver{font-size:11px;color:var(--text3);margin-top:2px}
+.qplugs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.qpc{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all var(--transition);user-select:none}
+.qpc:active{background:var(--gdim2);color:var(--g1);border-color:rgba(0,255,136,0.3)}
+
+/* ── XTERM TERMINAL ── */
+.termwrap{flex:1;display:flex;flex-direction:column;background:#000;position:relative}
+.term-resize-handle{position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:se-resize;z-index:10;opacity:0.4;transition:opacity 0.2s}
+.term-resize-handle:hover{opacity:1}
+.term-resize-handle svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2}
+#xtermContainer{flex:1;padding:4px;overflow:hidden;background:#000;margin-right:20px;margin-bottom:20px}
+.termhead{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#050d05;border-bottom:1px solid #0d1d0d;flex-shrink:0}
+.term-title{font-family:var(--mono);font-size:12px;color:var(--g3);font-weight:700;flex:1;display:flex;align-items:center;gap:8px}
+.term-busy{width:7px;height:7px;border-radius:50%;background:var(--yellow);box-shadow:0 0 5px var(--yellow);display:none;flex-shrink:0;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+#xtermContainer{flex:1;padding:4px;overflow:hidden;background:#000}
+.xterm{height:100%}
+.xterm .xterm-viewport{overflow-y:auto!important}
+
+/* ── CONFIG ── */
+.cfgbar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.cfgtitle{font-family:var(--mono);font-size:12px;color:var(--text2);flex:1}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;padding-bottom:var(--safe-b)}
+.modal-overlay.open{display:flex}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius) var(--radius) 0 0;padding:20px 18px;width:100%;max-width:460px;animation:sup .22s ease}
+@media(min-width:600px){.modal{border-radius:var(--radius)}}
+@keyframes sup{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mdrag{width:36px;height:3px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
+.mtitle{font-size:16px;font-weight:800;margin-bottom:16px;color:var(--text)}
+.macts{display:flex;gap:8px;margin-top:16px}
+.macts .btn{flex:1;justify-content:center}
+
+/* ── FILE BROWSER MODAL ── */
+#fileBrowserModal .modal{max-height:80vh;display:flex;flex-direction:column;padding-bottom:0}
+
+/* ── TOASTS ── */
+.toasts{position:fixed;top:58px;right:10px;left:10px;z-index:300;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+@media(min-width:480px){.toasts{left:auto;width:280px}}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 13px;font-size:13px;display:flex;align-items:center;gap:9px;animation:tin .22s ease;box-shadow:0 6px 24px rgba(0,0,0,0.5);pointer-events:all;transition:opacity .3s,transform .3s}
+@keyframes tin{from{transform:translateX(105%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.ok {border-left:3px solid var(--g1)}
+.toast.bad{border-left:3px solid var(--red)}
+.toast.inf{border-left:3px solid var(--blue)}
+.toast.wrn{border-left:3px solid var(--yellow)}
+.toast svg{width:14px;height:14px;stroke:currentColor;fill:none;flex-shrink:0;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.toast.ok svg{color:var(--g1)}.toast.bad svg{color:var(--red)}.toast.inf svg{color:var(--blue)}.toast.wrn svg{color:var(--yellow)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty svg{width:36px;height:36px;stroke:currentColor;fill:none;margin:0 auto 12px;opacity:.3;stroke-width:1.5}
+.empty h3{font-size:14px;color:var(--text2);margin-bottom:5px}
+
+/* ── SEARCH ── */
+.sbar{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 11px;font-family:var(--ui);font-size:13px;color:var(--text);width:100%;outline:none;margin-bottom:12px;-webkit-appearance:none}
+.sbar:focus{border-color:var(--g3)}
+
+/* ── NOTEBOOK / NOTES ── */
+.notes-area{width:100%;height:200px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 12px;outline:none;resize:none;line-height:1.65}
+.notes-area:focus{border-color:var(--g3)}
+/* USER MANAGEMENT */
+.user-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:border-color 0.15s}
+.user-card:hover{border-color:var(--border2)}
+.user-avatar{width:38px;height:38px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--g2);font-family:var(--mono);flex-shrink:0;text-transform:uppercase}
+.user-avatar.admin{background:rgba(0,153,68,0.1);border-color:var(--g4)}
+.user-info{flex:1;min-width:0}
+.user-name{font-weight:700;font-size:13px;color:var(--text);font-family:var(--mono)}
+.user-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.role-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;font-family:var(--mono);text-transform:uppercase;letter-spacing:.4px}
+.role-badge.admin{background:rgba(0,255,136,0.1);color:var(--g1);border:1px solid var(--g4)}
+.role-badge.user{background:var(--bg4);color:var(--text3);border:1px solid var(--border2)}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.active{background:var(--g1);box-shadow:0 0 4px var(--g1)}
+.status-dot.inactive{background:var(--red)}
+/* Modal form row */
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.form-row-2{grid-template-columns:1fr}}
+/* Confirm danger modal */
+.danger-card{background:rgba(240,80,96,0.04);border:1px solid rgba(240,80,96,0.2);border-radius:var(--radius);padding:14px;margin-bottom:14px;font-size:13px;color:var(--red)}
+
+/* mobile */
+@media(max-width:700px){.sidebar{display:none}.bnav{display:block}}
+@media(min-width:701px){.bnav{display:none}}
+
+/* ROLE GATING */
+.admin-only{display:none}
+.user-only{display:none}
+.viewer-mode{display:none}
+body.role-admin .admin-only{display:flex}
+body.role-admin .admin-only.block-el{display:block}
+body.role-user  .user-only{display:flex}
+body.role-user  .user-only.block-el{display:block}
+body.role-viewer .viewer-mode{display:flex}
+body.role-viewer .hide-viewer{display:none!important}
+
+/* SIMPLE TERMINAL */
+.simple-term-wrap{flex:1;display:flex;flex-direction:column;background:#020802}
+.simple-term-out{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px;font-family:var(--mono);font-size:13px;line-height:1.75;word-break:break-all}
+.simple-term-out::-webkit-scrollbar{width:3px}
+.simple-term-out::-webkit-scrollbar-thumb{background:#0a2a0a}
+.stl{display:block}
+.stl.si{color:var(--g1);font-weight:700}
+.stl.so{color:#6aff9a}
+.stl.se{color:var(--yellow)}
+.stl.ss{color:var(--text3);font-style:italic}
+.stl.tok{color:var(--g1);font-weight:700}
+.stl.tfl{color:var(--red);font-weight:700}
+.simple-inp-row{border-top:1px solid #0a1a0a;padding:10px 14px;padding-bottom:calc(10px + var(--safe-b));display:flex;align-items:center;gap:8px;background:#020802;flex-shrink:0}
+.simple-prompt{font-family:var(--mono);font-size:14px;color:var(--g1);white-space:nowrap;font-weight:700;text-shadow:0 0 8px var(--g1)}
+.simple-inp{flex:1;background:none;border:none;outline:none;font-family:var(--mono);font-size:14px;color:var(--g1);caret-color:var(--g1);-webkit-appearance:none}
+.simple-inp::placeholder{color:var(--text3)}
+.tsend-btn{background:var(--g4);color:var(--g1);border:1px solid var(--g3);border-radius:6px;padding:7px 14px;font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
+.tsend-btn:active{background:var(--g3)}
+
+/* TERM MODE SWITCHER */
+.term-mode-btns{display:flex;gap:4px;margin-left:auto}
+.term-mode-btn{padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:var(--mono);transition:all 0.15s}
+.term-mode-btn.active{background:var(--g4);border-color:var(--g3);color:var(--g1)}
+
+/* VIEWER PAGE */
+.viewer-page{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center;background:var(--bg)}
+.viewer-logo{font-size:40px;font-weight:800;color:var(--g1);text-shadow:0 0 30px rgba(0,255,136,0.4);margin-bottom:8px;letter-spacing:-1px}
+.viewer-sub{font-size:13px;color:var(--text2);margin-bottom:40px;font-family:var(--mono)}
+.viewer-apk-card{background:var(--bg2);border:1px solid rgba(0,255,136,0.2);border-radius:16px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 0 40px rgba(0,255,136,0.06)}
+.viewer-apk-icon{width:64px;height:64px;background:var(--g4);border:1px solid var(--g3);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.viewer-apk-icon svg{width:30px;height:30px;stroke:var(--g1);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.viewer-apk-name{font-size:15px;font-weight:700;color:var(--g1);margin-bottom:6px;font-family:var(--mono)}
+.viewer-apk-meta{font-size:12px;color:var(--text2);margin-bottom:24px;font-family:var(--mono)}
+.viewer-dl-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;background:var(--g3);color:#000;border:1px solid var(--g2);border-radius:10px;font-weight:800;font-size:15px;text-decoration:none;transition:all 0.2s;box-shadow:0 0 20px rgba(0,255,136,0.2)}
+.viewer-dl-btn:hover{background:var(--g2);box-shadow:0 0 30px rgba(0,255,136,0.3)}
+.viewer-dl-btn:active{transform:scale(0.97)}
+.viewer-dl-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.viewer-no-build{color:var(--text3);font-family:var(--mono);font-size:13px;padding:20px}
+
+/* MISC */
+.p16{padding:16px}.mb12{margin-bottom:12px}.row{display:flex;align-items:center;gap:8px}.row-bet{display:flex;align-items:center;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">
+      <!-- Cordova "diamond" SVG icon — no emoji -->
+      <svg viewBox="0 0 24 24"><polygon points="12 2 22 12 12 22 2 12"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+    </div>
+    CordovaDeck
+  </div>
+  <div class="proj-pill">
+    <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+    <select id="projectSelect" onchange="selectProject(this.value)">
+      <option value="">No Project Selected</option>
+    </select>
+  </div>
+  <div class="topbar-right">
+
+    <div class="conn-indicator">
+      <div class="conn-dot" id="connDot"></div>
+      <span class="conn-label" id="connLabel">Disconnected</span>
+    </div>
+    <span id="topBuildBtn" style="display:none"></span>
+    <button class="ic-btn" onclick="logout()" title="Sign out" style="color:#f05060;border-color:rgba(240,80,96,0.2)">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-nav">
+    <div class="ni active" onclick="nav('overview')" id="n-overview">
+      <svg class="ni-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </div>
+    <div class="ni hide-viewer" onclick="toggleSysMenu()" id="n-sysinfo">
+      <svg class="ni-ic" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      System
+      <svg id="sysChevron" viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;margin-left:auto;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div id="sysSubMenu" style="display:none">
+      <div class="ni ni-sub hide-viewer" onclick="nav('sysinfo')" id="n-sysinfo-gen" style="padding-left:28px">
+        <svg class="ni-ic" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        General
+      </div>
+      <div class="ni ni-sub hide-viewer" onclick="nav('btop')" id="n-btop" style="padding-left:28px">
+        <svg class="ni-ic" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        btop
+      </div>
+    </div>
+    <div class="ni hide-viewer" onclick="nav('editor')" id="n-editor">
+      <svg class="ni-ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Editor
+    </div>
+    <div class="ni hide-viewer" onclick="nav('build')" id="n-build">
+      <svg class="ni-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      Build
+    </div>
+    <div class="ni hide-viewer" onclick="nav('downloads')" id="n-downloads">
+      <svg class="ni-ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Downloads
+      <span class="nbadge" id="dlBadge" style="display:none">0</span>
+    </div>
+    <div class="ni hide-viewer" onclick="nav('plugins')" id="n-plugins">
+      <svg class="ni-ic" viewBox="0 0 24 24"><path d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/></svg>
+      Plugins
+    </div>
+    <div class="ni hide-viewer" onclick="nav('config')" id="n-config">
+      <svg class="ni-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Config
+    </div>
+    <div class="ni hide-viewer" onclick="nav('notes')" id="n-notes">
+      <svg class="ni-ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Notes
+    </div>
+    <div class="ni hide-viewer" onclick="nav('users')" id="n-users">
+      <svg class="ni-ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </div>
+    <div class="ni hide-viewer" onclick="nav('terminal')" id="n-terminal">
+      <svg class="ni-ic" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      Terminal
+    </div>
+    <div class="ni hide-viewer admin-only block-el" onclick="nav('dev')" id="n-dev">
+      <svg class="ni-ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Dev Settings
+    </div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="slbl">Project Files</div>
+  <div class="ftree" id="sideTree">
+    <div style="padding:8px 10px;font-size:11px;color:var(--text3)">Select a project</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ═══ VIEWER PAGE (shown instead of full dashboard for viewer role) ═══ -->
+<div class="panel" id="panel-viewer">
+  <div class="viewer-page">
+    <div class="viewer-logo">⬡ BuildDeck</div>
+    <div class="viewer-sub">You have view-only access</div>
+    <div class="viewer-apk-card" id="viewerApkCard">
+      <div class="viewer-apk-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="viewer-apk-name" id="viewerApkName">Loading latest build...</div>
+      <div class="viewer-apk-meta" id="viewerApkMeta">Checking for available builds</div>
+      <div id="viewerDlWrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="panel active" id="panel-overview">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div style="margin-bottom:14px">
+      <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-0.3px">Dashboard</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px">Apache Cordova build environment</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-v" id="sProjects">0</div><div class="stat-l">Projects</div></div>
+      <div class="stat-card"><div class="stat-v" id="sBuilds">0</div><div class="stat-l">Builds</div></div>
+      <div class="stat-card"><div class="stat-v" id="sPlugins">—</div><div class="stat-l">Plugins</div></div>
+      <div class="stat-card"><div class="stat-v" id="sFiles">—</div><div class="stat-l">Files</div></div>
+    </div>
+    <!-- mini sys strip -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="mini-sys-strip" id="miniSys" style="flex:1"></div>
+      <div id="itcClock" style="font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap;margin-left:12px"></div>
+    </div>
+    <div id="projInfoCard"></div>
+    <div class="sec" style="margin-bottom:10px">Quick Actions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="btn btn-green btn-full" onclick="startBuild()">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> Build APK
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="nav('sysinfo')">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> System
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="nav('editor')">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Editor
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="nav('terminal')">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Terminal
+      </button>
+    </div>
+    <div class="sec">Recent Builds <button class="btn btn-xs btn-ghost" onclick="loadBuilds()">Refresh</button></div>
+    <div id="recentBuilds"><div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><h3>No builds yet</h3></div></div>
+  </div></div>
+</div>
+
+<!-- ═══ SYSINFO ═══ -->
+<div class="panel" id="panel-sysinfo">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div class="row-bet mb12">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">System Monitor</div>
+      <button class="btn btn-ghost btn-sm" onclick="refreshSys()">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="uptime-strip" style="margin-bottom:0">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:3px">Dashboard Session</div>
+          <div class="uptime-val" id="sysSessionUptime">—</div>
+          <div class="uptime-sub">Since server started</div>
+        </div>
+      </div>
+      <div class="uptime-strip" style="margin-bottom:0">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:3px">Container Uptime</div>
+          <div class="uptime-val" style="font-size:16px;color:var(--text2)" id="sysUptime">—</div>
+          <div class="uptime-sub" id="sysHostname">Linux container</div>
+        </div>
+      </div>
+    </div>
+    <div class="uptime-strip" style="margin-bottom:14px;padding:10px 14px">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <div style="flex:1;font-size:12px;color:var(--text3)">
+        Container uptime counts from when GitHub&#39;s Linux VM started — not your Codespace session. Use <strong style="color:var(--text2)">Dashboard Session</strong> above for how long the server has been running.
+      </div>
+    </div>
+    <div class="sys-grid">
+      <div class="gauge-card">
+        <div class="gauge-top"><div class="gauge-lbl">CPU</div><div class="gauge-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/></svg></div></div>
+        <div class="gauge-val" id="sysCpuVal">—</div>
+        <div class="gauge-sub" id="sysCpuSub">—</div>
+        <div class="gauge-bar"><div class="gauge-fill gf-cpu" id="sysCpuBar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-top"><div class="gauge-lbl">Memory</div><div class="gauge-icon"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/></svg></div></div>
+        <div class="gauge-val" id="sysMemVal">—</div>
+        <div class="gauge-sub" id="sysMemSub">—</div>
+        <div class="gauge-bar"><div class="gauge-fill gf-mem" id="sysMemBar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-top"><div class="gauge-lbl">Disk</div><div class="gauge-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div></div>
+        <div class="gauge-val" id="sysDiskVal">—</div>
+        <div class="gauge-sub" id="sysDiskSub">—</div>
+        <div class="gauge-bar"><div class="gauge-fill gf-disk" id="sysDiskBar" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-top"><div class="gauge-lbl">Platform</div><div class="gauge-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div></div>
+        <div class="gauge-val" style="font-size:16px;color:var(--text)" id="sysPlatVal">—</div>
+        <div class="gauge-sub" id="sysPlatSub">—</div>
+        <div class="gauge-bar"><div class="gauge-fill" style="width:100%;background:var(--g5)"></div></div>
+      </div>
+    </div>
+    <div class="info-chips" id="sysChips"></div>
+    <!-- BTOP WINDOW -->
+    <div class="sec" style="margin-bottom:8px">
+      btop — Resource Monitor
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-xs btn-ghost" onclick="btopToggle()" id="btopToggleBtn">Launch btop</button>
+        <button class="btn btn-xs btn-danger" onclick="btopStop()" id="btopStopBtn" style="display:none">Stop</button>
+      </div>
+    </div>
+    <div id="btopWindow" style="display:none;margin-bottom:14px">
+      <!-- Window chrome -->
+      <div style="
+        background:#030d03;border:1px solid #1a3a1a;border-radius:10px;
+        overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);
+      ">
+        <!-- Title bar -->
+        <div style="
+          background:#051005;border-bottom:1px solid #0d2a0d;
+          padding:8px 12px;display:flex;align-items:center;gap:8px;
+        ">
+          <!-- Traffic lights -->
+          <div style="display:flex;gap:5px;flex-shrink:0">
+            <div onclick="btopStop()" style="width:11px;height:11px;border-radius:50%;background:#f05060;cursor:pointer;transition:filter 0.15s" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''" title="Close"></div>
+            <div onclick="btopMinimise()" style="width:11px;height:11px;border-radius:50%;background:#f0c030;cursor:pointer;transition:filter 0.15s" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''" title="Minimise"></div>
+            <div onclick="btopFullscreen()" style="width:11px;height:11px;border-radius:50%;background:#00cc44;cursor:pointer;transition:filter 0.15s" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''" title="Fullscreen"></div>
+          </div>
+          <div style="flex:1;text-align:center;font-family:var(--mono);font-size:11px;color:#2a6a2a;font-weight:700;letter-spacing:0.5px">
+            btop — system resource monitor
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button onclick="btopResize(-1)" style="background:none;border:1px solid #1a3a1a;border-radius:4px;color:#2a6a2a;font-size:10px;padding:2px 6px;cursor:pointer;font-family:var(--mono)">−</button>
+            <button onclick="btopResize(1)"  style="background:none;border:1px solid #1a3a1a;border-radius:4px;color:#2a6a2a;font-size:10px;padding:2px 6px;cursor:pointer;font-family:var(--mono)">+</button>
+          </div>
+        </div>
+        <!-- xterm container for btop -->
+        <div id="btopTermContainer" style="height:340px;background:#000;padding:2px"></div>
+      </div>
+    </div>
+
+    <div class="sec" style="margin-bottom:8px">
+      Environment Check
+      <button class="btn btn-xs btn-ghost" onclick="checkEnv()">Run Check</button>
+    </div>
+    <div class="logbox" id="envLog" style="height:150px">
+      <span class="ll dim">Press "Run Check" to verify Cordova, Java, Node...</span>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══ EDITOR ═══ -->
+<div class="panel" id="panel-editor">
+  <div class="ebar">
+    <span class="efile" id="editorFile">No file open — select from sidebar or tap folder icon</span>
+    <span class="estatus saved" id="editorStatus" style="display:none">Saved</span>
+    <button class="btn btn-xs btn-ghost" onclick="saveFile()" id="saveBtn" disabled>Save</button>
+    <button class="btn btn-xs btn-ghost" onclick="openModal('newFileModal')">New</button>
+    <button class="btn btn-xs btn-ghost" id="browseBtn" onclick="toggleFileBrowser()" title="Toggle file browser" style="display:none">
+      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+    </button>
+  </div>
+  <div class="evtabs">
+    <div class="vt active" onclick="eView('code')" id="vt-code">Code</div>
+    <div class="vt" onclick="eView('preview')" id="vt-preview">Preview</div>
+  </div>
+  <div id="ev-code" class="ewrap"><textarea id="codeArea"></textarea></div>
+  <div id="ev-preview" class="pvwrap" style="display:none">
+    <div class="pvbar">
+      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--text3);fill:none;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      <span class="pvurl" id="pvFilename">Preview</span>
+      <button class="btn btn-xs btn-ghost" onclick="refreshPreview()">Reload</button>
+    </div>
+    <iframe id="previewFrame" class="pviframe" sandbox="allow-scripts allow-same-origin"></iframe>
+  </div>
+</div>
+
+<!-- ═══ BUILD ═══ -->
+<div class="panel" id="panel-build">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div style="font-size:16px;font-weight:800;margin-bottom:14px;color:var(--text)">Build Configuration</div>
+    <div class="card">
+      <div class="card-hd"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Options</div>
+      <div class="field"><label class="lbl">Platform</label><select class="sel" id="bPlatform"><option value="android">Android (.apk)</option><option value="browser">Browser</option></select></div>
+      <div class="field"><label class="lbl">Build Type</label><select class="sel" id="bType"><option value="debug">Debug</option><option value="release">Release (signed)</option></select></div>
+      <div class="togrow"><span class="toglbl">Clean before build</span><label class="tog"><input type="checkbox" id="bClean"><span class="tog-t"></span></label></div>
+      <div class="togrow"><span class="toglbl">Verbose output</span><label class="tog"><input type="checkbox" id="bVerbose"><span class="tog-t"></span></label></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-green btn-full" onclick="startBuild()" id="buildBtnMain">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Build Now
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="cancelBuild()" id="cancelBtn" style="display:none">Stop</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Build Log
+        </span>
+        <button class="btn btn-xs btn-ghost" onclick="clearBuildLog()">Clear</button>
+      </div>
+      <div class="build-meta"><span id="buildStatusTxt">Ready</span><span id="buildTimeTxt" style="color:var(--g2);font-family:var(--mono);font-weight:700"></span></div>
+      <div class="prog"><div class="progbar" id="progBar"></div></div>
+      <div class="logbox" id="buildLog" style="height:240px"><span class="ll dim">Select a project and press Build Now to start.</span></div>
+    </div>
+    <div class="apk-ready" id="apkReady">
+      <div class="apk-ic-wrap">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="apk-info">
+        <div class="apk-name" id="apkName">app-debug.apk</div>
+        <div class="apk-sub" id="apkBuildInfo">Build complete — ready to download</div>
+      </div>
+      <a class="btn btn-green btn-sm" id="apkDlBtn" href="#" download>Download APK</a>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══ DOWNLOADS ═══ -->
+<div class="panel" id="panel-downloads">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div class="row-bet mb12">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">Build Artifacts</div>
+      <button class="btn btn-ghost btn-sm" onclick="loadBuilds()">Refresh</button>
+    </div>
+    <input class="sbar" placeholder="Search builds..." oninput="filterBuilds(this.value)">
+    <div id="buildsContainer"></div>
+  </div></div>
+</div>
+
+<!-- ═══ PLUGINS ═══ -->
+<div class="panel" id="panel-plugins">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div class="row-bet mb12">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">Plugin Manager</div>
+      <button class="btn btn-green btn-sm" onclick="openModal('addPluginModal')">Add Plugin</button>
+    </div>
+    <div class="sec" style="margin-bottom:8px">Quick Install</div>
+    <div class="qplugs">
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-camera')">Camera</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-geolocation')">Geolocation</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-file')">File</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-network-information')">Network</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-device')">Device</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-vibration')">Vibration</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-inappbrowser')">InAppBrowser</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-splashscreen')">Splashscreen</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-statusbar')">StatusBar</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-dialogs')">Dialogs</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-media')">Media</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-media-capture')">Capture</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-battery-status')">Battery</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-contacts')">Contacts</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-background-fetch')">BG Fetch</div>
+      <div class="qpc" onclick="quickPlugin('cordova-plugin-push')">Push Notify</div>
+    </div>
+    <div class="sec">Installed Plugins <button class="btn btn-xs btn-ghost" onclick="loadPlugins()">Refresh</button></div>
+    <div id="pluginList"></div>
+  </div></div>
+</div>
+
+<!-- ═══ CONFIG ═══ -->
+<div class="panel" id="panel-config">
+  <div class="cfgbar">
+    <span class="cfgtitle">config.xml</span>
+    <button class="btn btn-xs btn-ghost" onclick="loadConfig()">Reload</button>
+    <button class="btn btn-xs btn-green" onclick="saveConfig()">Save</button>
+  </div>
+  <div class="ewrap"><textarea id="configArea"></textarea></div>
+</div>
+
+<!-- ═══ NOTES ═══ -->
+<div class="panel" id="panel-notes">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div class="row-bet mb12">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">Dev Notes</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-xs btn-ghost" onclick="clearNotes()">Clear</button>
+        <button class="btn btn-xs btn-green" onclick="saveNotes()">Save</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Scratch pad — notes are saved in your browser.</div>
+    <textarea class="notes-area" id="notesArea" style="height:calc(100vh - 260px);width:100%" placeholder="Jot down commands, ideas, version notes..."></textarea>
+  </div></div>
+</div>
+
+<!-- ═══ USERS ═══ -->
+<div class="panel" id="panel-users">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div class="row-bet mb12">
+      <div style="font-size:16px;font-weight:800;color:var(--text)">User Management</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="loadUsers()">
+          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+        <button class="btn btn-green btn-sm" onclick="openModal('addUserModal')">
+          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add User
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;overflow-x:auto">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;flex-shrink:0">
+        <div style="font-size:20px;font-weight:800;color:var(--g1);font-family:var(--mono)" id="uStatTotal">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Total Users</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;flex-shrink:0">
+        <div style="font-size:20px;font-weight:800;color:var(--g2);font-family:var(--mono)" id="uStatAdmins">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Admins</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;flex-shrink:0">
+        <div style="font-size:20px;font-weight:800;color:var(--text2);font-family:var(--mono)" id="uStatActive">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Active</div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <input class="sbar" id="userSearch" placeholder="Search users..." oninput="filterUsers(this.value)" style="margin-bottom:12px">
+
+    <!-- User list -->
+    <div id="userList">
+      <div class="empty">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <h3>No users found</h3>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══ BTOP PANEL ═══ -->
+<div class="panel" id="panel-btop">
+  <div style="background:#030d03;border-bottom:1px solid #0d2a0d;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+    <div style="font-family:var(--mono);font-size:12px;color:var(--g3);font-weight:700;flex:1">btop — System Resource Monitor</div>
+    <button class="btn btn-xs btn-ghost" onclick="btopToggle()" id="btopToggleBtn">Launch btop</button>
+    <button class="btn btn-xs btn-danger" onclick="btopStop()" id="btopStopBtn" style="display:none">Stop</button>
+    <button onclick="btopResize(-1)" style="background:none;border:1px solid #1a3a1a;border-radius:4px;color:var(--g3);font-size:10px;padding:2px 6px;cursor:pointer;font-family:var(--mono)">-</button>
+    <button onclick="btopResize(1)" style="background:none;border:1px solid #1a3a1a;border-radius:4px;color:var(--g3);font-size:10px;padding:2px 6px;cursor:pointer;font-family:var(--mono)">+</button>
+    <button onclick="btopFullscreen()" style="background:none;border:1px solid #1a3a1a;border-radius:4px;color:var(--g3);font-size:10px;padding:2px 8px;cursor:pointer;font-family:var(--mono)">Full</button>
+  </div>
+  <div id="btopPanelContainer" style="flex:1;background:#000;padding:4px">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:var(--text3)">
+      <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--text3);fill:none;stroke-width:1.5;opacity:0.3"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <div style="font-size:14px;font-weight:700">Press Launch btop to start</div>
+      <div style="font-size:11px;font-family:var(--mono)">Full screen, optimised size — no resizing needed</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TERMINAL ═══ -->
+<div class="panel" id="panel-terminal">
+
+  <!-- PTY TERMINAL (admin default / user can switch to this too) -->
+  <div class="termwrap" id="ptyTermView">
+    <div class="termhead">
+      <div class="term-title">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--g3);fill:none;stroke-width:2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Terminal
+        <span class="term-busy" id="termBusy"></span>
+      </div>
+      <!-- Mode switcher (only admin sees both options) -->
+      <div class="term-mode-btns admin-only">
+        <button class="term-mode-btn active" id="tmPty" onclick="setTermMode('pty')">PTY</button>
+        <button class="term-mode-btn" id="tmSimple" onclick="setTermMode('simple')">Simple</button>
+      </div>
+      <button class="btn btn-xs btn-ghost" style="font-size:11px;margin-left:8px" onclick="termClear()">Clear</button>
+      <button class="btn btn-xs btn-danger" style="font-size:11px" onclick="termKill()">Kill</button>
+      <button class="btn btn-xs btn-ghost" style="font-size:11px" id="termReconnectBtn" onclick="reconnectTerm()" title="Reconnect session">↺ Reconnect</button>
+    </div>
+    <div id="xtermContainer"></div>
+    <div class="term-resize-handle" id="termResizeHandle">
+      <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+    </div>
+  </div>
+
+  <!-- SIMPLE TERMINAL (user default, admin can switch to) -->
+  <div class="simple-term-wrap" id="simpleTermView" style="display:none">
+    <div class="termhead">
+      <div class="term-title">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--g3);fill:none;stroke-width:2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Terminal
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">(simple mode)</span>
+      </div>
+      <!-- Mode switcher — admin only -->
+      <div class="term-mode-btns admin-only">
+        <button class="term-mode-btn" id="smPty" onclick="setTermMode('pty')">PTY</button>
+        <button class="term-mode-btn active" id="smSimple" onclick="setTermMode('simple')">Simple</button>
+      </div>
+      <button class="btn btn-xs btn-ghost" style="font-size:11px;margin-left:8px" onclick="simpleTermClear()">Clear</button>
+    </div>
+    <!-- Quick commands -->
+    <div class="qcmds">
+      <div class="qcmd c-blue" onclick="simpleRun('cordova --version')">cordova -v</div>
+      <div class="qcmd c-blue" onclick="simpleRun('node --version && npm --version')">node/npm</div>
+      <div class="qcmd c-blue" onclick="simpleRun('java -version')">java -v</div>
+      <div class="qcmd" onclick="simpleRun('ls -la')">ls</div>
+      <div class="qcmd" onclick="simpleRun('cat config.xml')">config.xml</div>
+      <div class="qcmd c-yellow" onclick="simpleRun('cordova platform list')">platforms</div>
+      <div class="qcmd c-yellow" onclick="simpleRun('cordova plugin list')">plugins</div>
+      <div class="qcmd c-yellow" onclick="simpleRun('cordova requirements')">requirements</div>
+      <div class="qcmd c-orange" onclick="simpleRun('npm install')">npm install</div>
+      <div class="qcmd c-red" onclick="simpleRun('cordova build android')">build android</div>
+      <div class="qcmd c-purple" onclick="simpleRun('df -h && free -h')">disk/mem</div>
+    </div>
+    <div class="simple-term-out" id="simpleTermOut">
+      <span class="stl ss">Simple terminal — no sudo, no interactive programs</span><br><br>
+    </div>
+    <div class="simple-inp-row">
+      <span class="simple-prompt" id="simplePromptLbl">❯</span>
+      <input class="simple-inp" id="simpleInp" placeholder="enter command..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="tsend-btn" onclick="simpleSend()">↵</button>
+    </div>
+  </div>
+
+  <!-- VIEWER — no terminal access at all -->
+  <div id="viewerTermBlock" style="display:none;flex:1;align-items:center;justify-content:center;background:var(--bg);flex-direction:column;gap:12px;padding:40px;text-align:center">
+    <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--text3);fill:none;stroke-width:1.5;opacity:0.3"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    <div style="color:var(--text3);font-size:14px;font-weight:700">Terminal access restricted</div>
+    <div style="color:var(--text3);font-size:12px;font-family:var(--mono)">Viewer accounts cannot use the terminal</div>
+  </div>
+
+</div>
+
+<!-- ═══ DEV SETTINGS ═══ -->
+<div class="panel" id="panel-dev">
+  <div class="scroll" style="flex:1"><div class="p16">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">Dev Settings</div>
+    <div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:16px">Admin only — configure banned commands and interface permissions</div>
+
+    <div class="card">
+      <div class="card-hd"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Banned Commands</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Commands blocked in both PTY and Simple terminal. One per line.</div>
+      <div class="field">
+        <label class="lbl">PTY Terminal Banned Commands</label>
+        <textarea class="notes-area" id="devBannedPty" style="height:120px" placeholder="rm -rf /&#10;mkfs&#10;dd if=/dev/zero"></textarea>
+      </div>
+      <div class="field">
+        <label class="lbl">Simple Terminal Banned Commands</label>
+        <textarea class="notes-area" id="devBannedSimple" style="height:120px" placeholder="sudo&#10;su&#10;curl&#10;wget"></textarea>
+      </div>
+      <button class="btn btn-green" onclick="saveBannedCmds()">Save Banned Commands</button>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Interface Permissions per Role</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Control which panels each role can access.</div>
+      <div id="devPermGrid"></div>
+      <button class="btn btn-green" onclick="savePerms()" style="margin-top:12px">Save Permissions</button>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Theme</div>
+      <div class="field">
+        <label class="lbl">Colour Theme</label>
+        <select class="sel" id="themeSelect" onchange="applyTheme(this.value)">
+          <option value="green-dark">Green Dark (default)</option>
+          <option value="green-light">Green Light</option>
+          <option value="purple-dark">Purple Dark</option>
+          <option value="purple-light">Purple Light</option>
+          <option value="hybrid-dark">Green + Purple Dark</option>
+          <option value="hybrid-light">Green + Purple Light</option>
+        </select>
+      </div>
+    </div>
+
+  </div></div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /body -->
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <div class="bnav-in">
+    <div class="bni active" onclick="nav('overview')" id="bn-overview">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Home</span>
+    </div>
+    <div class="bni" onclick="nav('sysinfo')" id="bn-sysinfo">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>System</span>
+    </div>
+    <div class="bni" onclick="nav('editor')" id="bn-editor">
+      <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <span>Editor</span>
+    </div>
+
+    <div class="bni" onclick="nav('terminal')" id="bn-terminal">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span>Term</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="newProjectModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="mtitle">New Cordova Project</div>
+    <div class="field"><label class="lbl">Project Name</label><input class="inp" id="npName" placeholder="my-app" oninput="autoId()"></div>
+    <div class="field"><label class="lbl">App ID (reverse domain)</label><input class="inp" id="npId" placeholder="com.example.myapp"></div>
+    <div class="field"><label class="lbl">Display Name</label><input class="inp" id="npDisplay" placeholder="My App"></div>
+    <div class="macts"><button class="btn btn-ghost" onclick="closeModal('newProjectModal')">Cancel</button><button class="btn btn-green" onclick="createProject()">Create</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addPluginModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="mtitle">Add Plugin</div>
+    <div class="field"><label class="lbl">npm Package Name</label><input class="inp" id="pluginInp" placeholder="cordova-plugin-camera"></div>
+    <div style="font-size:12px;color:var(--text3)">Enter the exact npm package name for the Cordova plugin.</div>
+    <div class="macts"><button class="btn btn-ghost" onclick="closeModal('addPluginModal')">Cancel</button><button class="btn btn-green" onclick="addPlugin()">Install</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="newFileModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="mtitle">New File</div>
+    <div class="field"><label class="lbl">Path (relative to www/)</label><input class="inp" id="nfPath" placeholder="css/styles.css"></div>
+    <div class="macts"><button class="btn btn-ghost" onclick="closeModal('newFileModal')">Cancel</button><button class="btn btn-green" onclick="createFile()">Create</button></div>
+  </div>
+</div>
+
+<!-- File browser modal (mobile) -->
+<div class="modal-overlay" id="fileBrowserModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="row-bet" style="margin-bottom:12px">
+      <div class="mtitle" style="margin-bottom:0">Project Files</div>
+      <button class="btn btn-xs btn-ghost" onclick="closeModal('fileBrowserModal')">Close</button>
+    </div>
+    <input class="sbar" placeholder="Search files..." oninput="filterFB(this.value)">
+    <div class="scroll" style="max-height:50vh;margin:0 -18px;padding:0 18px 18px">
+      <div class="ftree" id="fileBrowserTree"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="mtitle">Add New User</div>
+    <div class="field"><label class="lbl">Username</label><input class="inp" id="auName" placeholder="username" autocorrect="off" autocapitalize="off"></div>
+    <div class="field"><label class="lbl">Password</label>
+      <div style="position:relative">
+        <input class="inp" type="password" id="auPw" placeholder="password" style="padding-right:40px">
+        <button type="button" onclick="toggleModalPw('auPw','auEye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:4px">
+          <svg id="auEye" viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Role</label>
+      <select class="inp" id="auRole" style="cursor:pointer">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+        <option value="viewer">Viewer (showoff mode)</option>
+      </select>
+    </div>
+    <div class="macts">
+      <button class="btn btn-ghost" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn btn-green" onclick="addUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="mtitle">Edit User</div>
+    <input type="hidden" id="euId">
+    <div class="field"><label class="lbl">Username</label><input class="inp" id="euName" placeholder="username" autocorrect="off" autocapitalize="off"></div>
+    <div class="field"><label class="lbl">New Password <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(leave blank to keep current)</span></label>
+      <div style="position:relative">
+        <input class="inp" type="password" id="euPw" placeholder="Leave blank to keep current" style="padding-right:40px">
+        <button type="button" onclick="toggleModalPw('euPw','euEye')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:4px">
+          <svg id="euEye" viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Role</label>
+      <select class="inp" id="euRole" style="cursor:pointer">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+        <option value="viewer">Viewer (showoff mode)</option>
+      </select>
+    </div>
+    <div class="field"><label class="lbl">Status</label>
+      <select class="inp" id="euActive" style="cursor:pointer">
+        <option value="1">Active</option>
+        <option value="0">Disabled</option>
+      </select>
+    </div>
+    <div class="macts">
+      <button class="btn btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteUserModal">
+  <div class="modal">
+    <div class="mdrag"></div>
+    <div class="mtitle" style="color:var(--red)">Delete User</div>
+    <div class="danger-card">
+      ⚠️ You are about to permanently delete <strong id="delUserName"></strong>. This cannot be undone.
+    </div>
+    <input type="hidden" id="delUserId">
+    <div class="macts">
+      <button class="btn btn-ghost" onclick="closeModal('deleteUserModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteUser()">Delete User</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+const S = {
+  project:null, file:null, view:'overview',
+  socket:null, editors:{},
+  building:false, buildId:null,
+  allBuilds:[], _buildStart:0, _buildTimer:null,
+  _sysTimer:null, _previewTimer:null,
+  xterm:null, fitAddon:null,
+  _projectFiles:{}, // cache: project -> {path: content}
+};
+
+// ════════════════════════════════════════════════
+// SOCKET
+// ════════════════════════════════════════════════
+function initSocket() {
+  S.socket = io({ transports:['polling'], upgrade: false });
+  S.socket.on('connect', () => {
+    document.getElementById('connDot').classList.add('on');
+    const lbl = document.getElementById('connLabel');
+    if (lbl) { lbl.textContent = 'Connected'; lbl.style.color = 'var(--g2)'; }
+  });
+  S.socket.on('disconnect', () => {
+    document.getElementById('connDot').classList.remove('on');
+    const lbl = document.getElementById('connLabel');
+    if (lbl) { lbl.textContent = 'Disconnected'; lbl.style.color = 'var(--red)'; }
+    toast('Disconnected from server','bad');
+  });
+  // Build events
+  S.socket.on('build:start',   d => { S.buildId=d.buildId; setBusy(true); });
+  S.socket.on('build:log',     d => logBuild(d.data, d.type));
+  S.socket.on('build:success', d => onBuildDone(d.apk, d.downloadUrl));
+  S.socket.on('build:error',   d => onBuildFail(d.code));
+  // Terminal (xterm) events
+  S.socket.on('terminal:data', data => { if(S.xterm) S.xterm.write(data); });
+  initBtopSocket();
+  S.socket.on('terminal:exit', d => { handleTermExit(d.code); });
+
+  // Simple terminal socket events
+  S.socket.on('terminal:out',  d => simpleAppend(d.data, d.error ? 'se' : 'so'));
+  S.socket.on('terminal:done', d => {
+    simpleAppend(d.code === 0 ? '✓ done' : '✗ exited ' + d.code, d.code === 0 ? 'tok' : 'tfl');
+    _simpleBusy = false;
+    const i = document.getElementById('simpleInp');
+    if (i) { i.disabled = false; i.focus(); }
+  });
+}
+
+// ════════════════════════════════════════════════
+// API
+// ════════════════════════════════════════════════
+async function api(path, opts={}) {
+  try {
+    // Attach auth token from session
+    const token = sessionStorage.getItem('authToken');
+    if (token) {
+      opts.headers = opts.headers || {};
+      opts.headers['x-auth-token'] = token;
+    }
+    opts.credentials = 'same-origin';
+    const r = await fetch(path, opts);
+    if (r.status === 401) {
+      // Session expired — redirect to login
+      window.location.href = '/login.html';
+      return { error: 'Not authenticated' };
+    }
+    return r.ok ? await r.json() : { error:`HTTP ${r.status}` };
+  } catch(e) { return { error:e.message }; }
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  initSocket();
+  initEditors();
+  initXterm();
+  initSimpleTerminal();
+  if (window.innerWidth <= 700) document.getElementById('browseBtn').style.display = '';
+  await applyRole();      // load role first — determines what UI to show
+  await loadProjects();
+  await loadBuilds();
+  loadNotes();
+  setTimeout(refreshSys, 500);
+  S._sysTimer = setInterval(refreshSys, 2000);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); saveFile(); }
+  });
+});
+
+// ════════════════════════════════════════════════
+// XTERM — real PTY terminal
+// ════════════════════════════════════════════════
+function initXterm() {
+  S.xterm = new Terminal({
+    theme: {
+      background:'#000000', foreground:'#00ff88',
+      cursor:'#00ff88', cursorAccent:'#000000',
+      black:'#001a00', red:'#f05060', green:'#00ff88',
+      yellow:'#f0c030', blue:'#40b0ff', magenta:'#a060f0',
+      cyan:'#00ccff', white:'#c8e8c8',
+      brightBlack:'#2a5a2a', brightRed:'#ff6070',
+      brightGreen:'#44ff99', brightYellow:'#ffdd55',
+      brightBlue:'#66c8ff', brightMagenta:'#c080ff',
+      brightCyan:'#44ddff', brightWhite:'#ffffff',
+    },
+    fontFamily:"'JetBrains Mono', 'Cascadia Code', monospace",
+    fontSize: 13, lineHeight: 1.5,
+    cursorBlink: true, cursorStyle: 'bar',
+    scrollback: 5000,
+    allowProposedApi: true,
+  });
+  S.fitAddon = new FitAddon.FitAddon();
+  S.xterm.loadAddon(S.fitAddon);
+  try { S.xterm.loadAddon(new WebLinksAddon.WebLinksAddon()); } catch(e) {}
+
+  const container = document.getElementById('xtermContainer');
+  S.xterm.open(container);
+
+  // Send input to server PTY
+  S.xterm.onData(data => {
+    if (S.socket) S.socket.emit('terminal:input', data);
+  });
+
+  // Resize
+  const ro = new ResizeObserver(() => {
+    try { S.fitAddon.fit(); } catch(e) {}
+    if (S.socket) S.socket.emit('terminal:resize', { cols: S.xterm.cols, rows: S.xterm.rows });
+  });
+  ro.observe(container);
+
+  S.xterm.writeln('\x1b[32mCordovaDeck Terminal\x1b[0m — full PTY, sudo works');
+  S.xterm.writeln('\x1b[90mStarting shell session...\x1b[0m');
+  S.xterm.writeln('');
+}
+
+function startTermSession() {
+  if (!S.socket) return;
+  try { S.fitAddon.fit(); } catch(e) {}
+  S.socket.emit('terminal:create', {
+    project: S.project,
+    cols: S.xterm.cols,
+    rows: S.xterm.rows,
+  });
+  document.getElementById('termBusy').style.display = 'block';
+}
+
+function termKill() {
+  if (S.socket) S.socket.emit('terminal:kill');
+  document.getElementById('termBusy').style.display = 'none';
+}
+
+function termClear() {
+  if (S.xterm) S.xterm.clear();
+}
+
+// ════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════
+function nav(v) {
+  S.view = v;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${v}`).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  const sn = document.getElementById(`n-${v}`);
+  if (sn) sn.classList.add('active');
+  document.querySelectorAll('.bni').forEach(b => b.classList.remove('active'));
+  const bn = document.getElementById(`bn-${v}`);
+  if (bn) bn.classList.add('active');
+
+  if (v==='editor') {
+    setTimeout(()=>{ S.editors.main && S.editors.main.refresh(); },60);
+    if (S.project && window.innerWidth<=700) openModal('fileBrowserModal');
+  }
+  if (v==='terminal') {
+    setTimeout(()=>{
+      try { S.fitAddon.fit(); } catch(e) {}
+      S.xterm.focus();
+    },80);
+  }
+  if (v==='plugins'  && S.project) loadPlugins();
+  if (v==='config'   && S.project) loadConfig();
+  if (v==='sysinfo')  { refreshSys(); setTimeout(refreshSys, 400); }
+  if (v==='users')    loadUsers();
+  if (v==='overview') updateOverview();
+}
+
+// ════════════════════════════════════════════════
+// FILE BROWSER TOGGLE (mobile — closes on second tap)
+// ════════════════════════════════════════════════
+let _fbOpen = false;
+function toggleFileBrowser() {
+  if (_fbOpen) {
+    closeModal('fileBrowserModal');
+    _fbOpen = false;
+  } else {
+    openModal('fileBrowserModal');
+    _fbOpen = true;
+  }
+}
+
+// ════════════════════════════════════════════════
+// EDITORS
+// ════════════════════════════════════════════════
+function initEditors() {
+  S.editors.main = CodeMirror.fromTextArea(document.getElementById('codeArea'), {
+    lineNumbers:true, mode:'htmlmixed',
+    autoCloseTags:true, matchBrackets:true,
+    indentUnit:2, tabSize:2, indentWithTabs:false,
+    extraKeys:{ 'Ctrl-S':saveFile, 'Cmd-S':saveFile, 'Ctrl-F':'findPersistent' },
+  });
+  S.editors.main.on('change', () => {
+    markUnsaved();
+    clearTimeout(S._previewTimer);
+    S._previewTimer = setTimeout(()=>{
+      if (S.file && S.file.endsWith('.html') && document.getElementById('ev-preview').style.display!=='none')
+        refreshPreview();
+    }, 1200);
+  });
+  S.editors.config = CodeMirror.fromTextArea(document.getElementById('configArea'), {
+    lineNumbers:true, mode:'xml', autoCloseTags:true, indentUnit:2
+  });
+}
+
+function markUnsaved() {
+  const s=document.getElementById('editorStatus');
+  s.style.display='inline'; s.className='estatus unsaved'; s.textContent='Unsaved';
+  document.getElementById('saveBtn').disabled=false;
+}
+function markSaved() {
+  const s=document.getElementById('editorStatus');
+  s.style.display='inline'; s.className='estatus saved'; s.textContent='Saved';
+  document.getElementById('saveBtn').disabled=true;
+}
+function getMode(fn) {
+  const e=fn.split('.').pop().toLowerCase();
+  return {html:'htmlmixed',htm:'htmlmixed',css:'css',js:'javascript',json:'javascript',xml:'xml',svg:'xml'}[e]||'text/plain';
+}
+
+function eView(v) {
+  document.getElementById('ev-code').style.display    = v==='code'    ? '':'none';
+  document.getElementById('ev-preview').style.display = v==='preview' ? 'flex':'none';
+  document.getElementById('vt-code').classList.toggle('active',v==='code');
+  document.getElementById('vt-preview').classList.toggle('active',v==='preview');
+  if (v==='code') setTimeout(()=>S.editors.main.refresh(),50);
+  if (v==='preview') refreshPreview();
+}
+
+// ── MULTI-FILE PREVIEW ──
+// Loads ALL www/ files, injects CSS + JS inline so preview works correctly
+async function refreshPreview() {
+  if (!S.project || !S.file) return;
+  const htmlContent = S.editors.main.getValue();
+
+  // Fetch all CSS and JS files from the project
+  let cssFiles = {}, jsFiles = {};
+  try {
+    const tree = await api(`/api/projects/${S.project}/files`);
+    const flat = [];
+    function flattenTree(items) {
+      items.forEach(i => {
+        if (i.type==='file') flat.push(i);
+        else flattenTree(i.children||[]);
+      });
+    }
+    flattenTree(Array.isArray(tree)?tree:[]);
+
+    // fetch CSS
+    await Promise.all(flat.filter(f=>f.name.endsWith('.css')).map(async f=>{
+      const r = await api(`/api/projects/${S.project}/files/${f.path}`);
+      if (!r.error) cssFiles[f.path] = r.content||'';
+    }));
+    // fetch JS
+    await Promise.all(flat.filter(f=>f.name.endsWith('.js') && !f.name.includes('cordova')).map(async f=>{
+      const r = await api(`/api/projects/${S.project}/files/${f.path}`);
+      if (!r.error) jsFiles[f.path] = r.content||'';
+    }));
+  } catch(e) {}
+
+  // Parse HTML and replace <link> and <script src> with inline content
+  let processed = htmlContent;
+
+  // Replace <link rel="stylesheet" href="...">
+  processed = processed.replace(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*\/?>/gi, (match, href) => {
+    const key = Object.keys(cssFiles).find(k => k.endsWith(href.replace(/^[./]+/,'')));
+    if (key) return `<style>/* ${href} */\n${cssFiles[key]}\n</style>`;
+    return match;
+  });
+  // Also <link href="..." rel="stylesheet">
+  processed = processed.replace(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*\/?>/gi, (match, href) => {
+    const key = Object.keys(cssFiles).find(k => k.endsWith(href.replace(/^[./]+/,'')));
+    if (key) return `<style>/* ${href} */\n${cssFiles[key]}\n</style>`;
+    return match;
+  });
+
+  // Replace <script src="..."> (skip cordova.js)
+  processed = processed.replace(/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/gi, (match, src) => {
+    if (src.includes('cordova')) return '<!-- cordova.js skipped in preview -->';
+    const key = Object.keys(jsFiles).find(k => k.endsWith(src.replace(/^[./]+/,'')));
+    if (key) return `<script>/* ${src} */\n${jsFiles[key]}\n<\/script>`;
+    return match;
+  });
+
+  document.getElementById('previewFrame').srcdoc = processed;
+  document.getElementById('pvFilename').textContent = S.file;
+}
+
+// ════════════════════════════════════════════════
+// PROJECTS
+// ════════════════════════════════════════════════
+async function loadProjects() {
+  const ps = await api('/api/projects');
+  const sel = document.getElementById('projectSelect');
+  sel.innerHTML = '<option value="">No Project Selected</option>';
+  if (Array.isArray(ps)) {
+    ps.forEach(p => {
+      const o=document.createElement('option');
+      o.value=p.name; o.textContent=p.name+(p.version?` (v${p.version})`:'');
+      sel.appendChild(o);
+    });
+    document.getElementById('sProjects').textContent=ps.length;
+  }
+}
+
+function selectProject(name) {
+  S.project = name||null;
+  if (name) {
+    loadFileTree();
+    loadPlugins();
+    updateOverview();
+    toast(`Loaded project: ${name}`,'ok');
+    // restart terminal session in new project dir
+    if (S.view==='terminal') startTermSession();
+  }
+}
+
+function autoId() {
+  const n=document.getElementById('npName').value;
+  document.getElementById('npId').value=`com.example.${n.replace(/[^a-z0-9]/gi,'').toLowerCase()||'app'}`;
+  document.getElementById('npDisplay').value=n;
+}
+
+async function createProject() {
+  const name=document.getElementById('npName').value.trim();
+  const id=document.getElementById('npId').value.trim();
+  const displayName=document.getElementById('npDisplay').value.trim();
+  if (!name) return toast('Name is required','bad');
+  const r=await api('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,id,displayName})});
+  if (r.error) return toast(r.error,'bad');
+  closeModal('newProjectModal');
+  ['npName','npId','npDisplay'].forEach(id=>document.getElementById(id).value='');
+  await loadProjects();
+  document.getElementById('projectSelect').value=name;
+  selectProject(name);
+}
+
+// ════════════════════════════════════════════════
+// FILE TREE
+// ════════════════════════════════════════════════
+let _treeData=[];
+
+async function loadFileTree() {
+  if (!S.project) return;
+  const files=await api(`/api/projects/${S.project}/files`);
+  _treeData=Array.isArray(files)?files:[];
+  renderTreeInto(_treeData,document.getElementById('sideTree'));
+  renderTreeInto(_treeData,document.getElementById('fileBrowserTree'));
+  let c=0;
+  function cnt(a){a.forEach(i=>{if(i.type==='file')c++;else cnt(i.children||[]);})}
+  cnt(_treeData);
+  document.getElementById('sFiles').textContent=c;
+}
+
+function renderTreeInto(items,container) {
+  container.innerHTML='';
+  const nb=document.createElement('div');
+  nb.style.cssText='padding:0 0 6px';
+  nb.innerHTML=`<button class="btn btn-xs btn-ghost btn-full" onclick="openModal('newFileModal')" style="font-size:11px">New File</button>`;
+  container.appendChild(nb);
+  items.forEach(i=>buildNode(i,container));
+}
+
+function buildNode(item,container) {
+  const extIco={
+    html:'<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#40b0ff;fill:none;stroke-width:2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+    css:'<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#a060f0;fill:none;stroke-width:2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49M7.76 16.24a6 6 0 010-8.49M20.49 3.51a14 14 0 010 16.98M3.51 20.49a14 14 0 010-16.98"/></svg>',
+    js:'<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#f0c030;fill:none;stroke-width:2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+    json:'<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#00ccff;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>',
+    xml:'<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#ff8833;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>',
+  };
+  const ext=item.name.split('.').pop().toLowerCase();
+  const el=document.createElement('div');
+  if (item.type==='dir') {
+    el.className='fti fdir';
+    el.innerHTML=`<span class="fchev">▶</span><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--yellow);fill:none;stroke-width:2;flex-shrink:0"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><span class="flbl">${item.name}</span>`;
+    container.appendChild(el);
+    const kids=document.createElement('div');
+    kids.className='fkids';kids.style.display='none';
+    el.addEventListener('click',()=>{
+      const open=kids.style.display!=='none';
+      kids.style.display=open?'none':'block';
+      el.querySelector('.fchev').classList.toggle('open',!open);
+    });
+    (item.children||[]).forEach(c=>buildNode(c,kids));
+    container.appendChild(kids);
+  } else {
+    el.className='fti';el.dataset.path=item.path;
+    const ic=extIco[ext]||'<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:var(--text3);fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>';
+    el.innerHTML=`<span style="width:11px"></span>${ic}<span class="flbl">${item.name}</span>`;
+    el.addEventListener('click',()=>{
+      openFile(item.path);
+      // close file browser modal after selecting
+      closeModal('fileBrowserModal');
+      _fbOpen=false;
+    });
+    container.appendChild(el);
+  }
+}
+
+function filterFB(q) {
+  document.querySelectorAll('#fileBrowserTree .fti:not(.fdir)').forEach(el=>{
+    el.style.display=(el.dataset.path||'').toLowerCase().includes(q.toLowerCase())?'':'none';
+  });
+}
+
+async function openFile(path) {
+  if (!S.project) return;
+  const r=await api(`/api/projects/${S.project}/files/${path}`);
+  if (r.error) return toast(r.error,'bad');
+  S.file=path;
+  S.editors.main.setValue(r.content||'');
+  S.editors.main.setOption('mode',getMode(path));
+  document.getElementById('editorFile').textContent=path;
+  markSaved();
+  document.querySelectorAll('#sideTree .fti').forEach(el=>el.classList.toggle('act',el.dataset.path===path));
+  nav('editor');
+  setTimeout(()=>S.editors.main.refresh(),60);
+}
+
+async function saveFile() {
+  if (!S.project||!S.file) return;
+  const r=await api(`/api/projects/${S.project}/files/${S.file}`,{
+    method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({content:S.editors.main.getValue()})
+  });
+  if (r.error) return toast(r.error,'bad');
+  markSaved(); toast('File saved','ok');
+}
+
+async function createFile() {
+  if (!S.project) return toast('No project selected','bad');
+  const p=document.getElementById('nfPath').value.trim();
+  if (!p) return;
+  await api(`/api/projects/${S.project}/files`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({path:p,content:''})
+  });
+  closeModal('newFileModal');
+  document.getElementById('nfPath').value='';
+  await loadFileTree();
+  openFile(p);
+}
+
+// ════════════════════════════════════════════════
+// BUILD  — timer fixed
+// ════════════════════════════════════════════════
+function startBuild() {
+  if (!S.project) return toast('No project selected','bad');
+  if (S.building) return;
+  clearBuildLog();
+  document.getElementById('apkReady').classList.remove('show');
+  document.getElementById('progBar').className='progbar anim';
+  document.getElementById('buildStatusTxt').textContent='Building...';
+  document.getElementById('buildTimeTxt').textContent='';
+  S._buildStart=Date.now();
+  S._buildTimer=setInterval(()=>{
+    document.getElementById('buildTimeTxt').textContent=((Date.now()-S._buildStart)/1000).toFixed(1)+'s';
+  },100);
+  logBuild(`Starting build: ${S.project}`, 'cmd');
+  api(`/api/projects/${S.project}/build`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      platform:document.getElementById('bPlatform').value,
+      release:document.getElementById('bType').value==='release',
+      socketId:S.socket.id
+    })
+  });
+  nav('build');
+}
+
+function cancelBuild() {
+  if (S.buildId) {
+    api(`/api/build/${S.buildId}/cancel`,{method:'POST'});
+    setBusy(false);
+    logBuild('Build cancelled by user','warn');
+  }
+}
+
+function setBusy(b) {
+  S.building=b;
+  document.getElementById('buildBtnMain').disabled=b;
+  document.getElementById('topBuildBtn').disabled=b;
+  document.getElementById('cancelBtn').style.display=b?'inline-flex':'none';
+  if (!b) {
+    clearInterval(S._buildTimer); // STOPS TIMER
+    S._buildTimer=null;
+  }
+}
+
+function onBuildDone(apk, dlUrl) {
+  setBusy(false);
+  document.getElementById('progBar').className='progbar done';
+  document.getElementById('buildStatusTxt').textContent='Build successful';
+  logBuild('─'.repeat(40),'sep');
+  logBuild('BUILD SUCCESSFUL','ok');
+  if (apk && dlUrl) {
+    document.getElementById('apkReady').classList.add('show');
+    document.getElementById('apkName').textContent=apk;
+    document.getElementById('apkDlBtn').href=dlUrl;
+    toast('APK is ready to download!','ok');
+    loadBuilds();
+  }
+}
+
+function onBuildFail(code) {
+  setBusy(false);
+  document.getElementById('progBar').className='progbar fail';
+  document.getElementById('buildStatusTxt').textContent=`Build failed (exit ${code})`;
+  logBuild('─'.repeat(40),'sep');
+  logBuild(`BUILD FAILED — exit code ${code}`,'bad');
+  toast('Build failed. See log for details.','bad');
+}
+
+function logBuild(txt, type='out') {
+  const box=document.getElementById('buildLog');
+  txt.split('\n').forEach(raw=>{
+    if (!raw.trim() && type==='out') return;
+    const d=document.createElement('span');
+    let c=type;
+    if (type==='stdout'||type==='out') {
+      const lc=raw.toLowerCase();
+      if      (lc.match(/\berror\b/) && !lc.startsWith('//')) c='bad';
+      else if (lc.match(/\bwarn/))  c='warn';
+      else if (lc.match(/success|built|complete/)) c='ok';
+      else if (lc.match(/^\s*\[/)) c='inf';
+      else c='out';
+    } else if (type==='stderr') c='warn';
+    d.className=`ll ${c}`; d.textContent=raw;
+    box.appendChild(d); box.appendChild(document.createTextNode('\n'));
+  });
+  box.scrollTop=box.scrollHeight;
+}
+
+function clearBuildLog() { document.getElementById('buildLog').innerHTML=''; }
+
+// ════════════════════════════════════════════════
+// DOWNLOADS
+// ════════════════════════════════════════════════
+async function loadBuilds() {
+  const builds=await api('/api/builds');
+  S.allBuilds=Array.isArray(builds)?builds:[];
+  renderBuilds(S.allBuilds);
+  const n=S.allBuilds.length;
+  document.getElementById('sBuilds').textContent=n;
+  const badge=document.getElementById('dlBadge');
+  badge.style.display=n>0?'':'none';
+  badge.textContent=n;
+  updateOverview();
+}
+
+function filterBuilds(q) {
+  renderBuilds(S.allBuilds.filter(b=>b.name.toLowerCase().includes(q.toLowerCase())));
+}
+
+function renderBuilds(builds) {
+  const c=document.getElementById('buildsContainer');
+  if (!builds.length) {
+    c.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><h3>No builds yet</h3></div>`;
+    return;
+  }
+  c.innerHTML=builds.map(b=>`
+    <div class="bitem">
+      <div class="bitem-ic">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="bitem-info">
+        <div class="bitem-name">${b.name}</div>
+        <div class="bitem-meta">${(b.size/1024/1024).toFixed(2)} MB &nbsp;·&nbsp; ${new Date(b.date).toLocaleString()}</div>
+      </div>
+      <div class="bitem-acts">
+        <a class="btn btn-green btn-xs" href="${b.downloadUrl}" download>Download</a>
+        <button class="btn btn-danger btn-xs" onclick="deleteBuild('${b.name}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function deleteBuild(name) {
+  await api(`/api/builds/${encodeURIComponent(name)}`,{method:'DELETE'});
+  loadBuilds(); toast('Build deleted','inf');
+}
+
+// ════════════════════════════════════════════════
+// PLUGINS
+// ════════════════════════════════════════════════
+async function loadPlugins() {
+  if (!S.project) return;
+  const plugins=await api(`/api/projects/${S.project}/plugins`);
+  document.getElementById('sPlugins').textContent=Array.isArray(plugins)?plugins.length:0;
+  const list=document.getElementById('pluginList');
+  if (!Array.isArray(plugins)||!plugins.length) {
+    list.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/></svg><h3>No plugins installed</h3></div>`;
+    return;
+  }
+  list.innerHTML=plugins.map(p=>`
+    <div class="pitem">
+      <div style="flex:1;min-width:0">
+        <div class="pname">${p.name}</div>
+        <div class="pver">${p.version||'unknown version'}</div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="removePlugin('${p.name}')">Remove</button>
+    </div>`).join('');
+}
+
+function quickPlugin(name) {
+  if (!S.project) return toast('Select a project first','bad');
+  document.getElementById('pluginInp').value=name;
+  openModal('addPluginModal');
+}
+
+async function addPlugin() {
+  if (!S.project) return toast('No project selected','bad');
+  const plugin=document.getElementById('pluginInp').value.trim();
+  if (!plugin) return;
+  closeModal('addPluginModal');
+  toast(`Installing ${plugin}...`,'inf');
+  await api(`/api/projects/${S.project}/plugins`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({plugin,socketId:S.socket.id})
+  });
+  loadPlugins();
+  document.getElementById('pluginInp').value='';
+}
+
+async function removePlugin(name) {
+  await api(`/api/projects/${S.project}/plugins/${name}`,{method:'DELETE'});
+  loadPlugins(); toast(`Removed ${name}`,'inf');
+}
+
+// ════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════
+async function loadConfig() {
+  if (!S.project) return;
+  const r=await api(`/api/projects/${S.project}/config`);
+  if (r.content!==undefined) {
+    S.editors.config.setValue(r.content);
+    setTimeout(()=>S.editors.config.refresh(),50);
+  }
+}
+
+async function saveConfig() {
+  if (!S.project) return;
+  const r=await api(`/api/projects/${S.project}/config`,{
+    method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({content:S.editors.config.getValue()})
+  });
+  if (r.error) return toast(r.error,'bad');
+  toast('config.xml saved','ok');
+}
+
+// ════════════════════════════════════════════════
+// NOTES
+// ════════════════════════════════════════════════
+function loadNotes() {
+  const n=localStorage.getItem('builddeck_notes')||'';
+  document.getElementById('notesArea').value=n;
+}
+function saveNotes() {
+  localStorage.setItem('builddeck_notes', document.getElementById('notesArea').value);
+  toast('Notes saved','ok');
+}
+function clearNotes() {
+  document.getElementById('notesArea').value='';
+  localStorage.removeItem('builddeck_notes');
+  toast('Notes cleared','inf');
+}
+// auto-save notes on input
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('notesArea').addEventListener('input',()=>{
+    clearTimeout(S._notesTimer);
+    S._notesTimer=setTimeout(saveNotes,5000);
+  });
+});
+
+// ════════════════════════════════════════════════
+// SYSINFO
+// ════════════════════════════════════════════════
+function fmtBytes(b,dec=1) {
+  if (!b) return '0 B';
+  const k=1024,sz=['B','KB','MB','GB','TB'];
+  const i=Math.floor(Math.log(b)/Math.log(k));
+  return parseFloat((b/Math.pow(k,i)).toFixed(dec))+' '+sz[i];
+}
+
+async function refreshSys() {
+  const d = await api('/api/sysinfo');
+  if (!d || d.error) return;
+
+  const cpu  = d.cpu  || {};
+  const mem  = d.mem  || {};
+  const disk = d.disk || {};
+
+  // Use Number() so string "2" and number 2 both work
+  const cp = Number(cpu.usage) || 0;
+  const mp = Number(mem.pct)   || 0;
+  const dp = Number(disk.pct)  || 0;
+
+  // Helper — set element text safely
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+  // Helper — set gauge bar width + colour directly via style (bypasses class issues)
+  function bar(id, pct, colour) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.cssText = 'height:100%;border-radius:2px;transition:width 1s ease;width:' + pct + '%;background:' + (pct > 85 ? 'linear-gradient(90deg,#ff8833,#f05060)' : colour);
+  }
+
+  set('sysUptime',        d.uptime || '—');
+  set('sysHostname',      (d.hostname||'') + ' · ' + (d.platform||''));
+  set('sysLoad',          Array.isArray(d.loadAvg) ? d.loadAvg.join(' / ') : '—');
+  set('sysSessionUptime', d.sessionUptime || '—');
+
+  set('sysCpuVal',  cp + '%');
+  set('sysCpuSub',  (cpu.cores||'?') + ' cores');
+  bar('sysCpuBar',  cp, 'linear-gradient(90deg,#009944,#00ff88)');
+
+  set('sysMemVal',  mp + '%');
+  set('sysMemSub',  fmtBytes(mem.used||0) + ' / ' + fmtBytes(mem.total||0));
+  bar('sysMemBar',  mp, 'linear-gradient(90deg,#40b0ff,#80d0ff)');
+
+  set('sysDiskVal', disk.total > 0 ? dp + '%' : 'N/A');
+  set('sysDiskSub', disk.total > 0 ? (disk.used||0) + ' MB / ' + (disk.total||0) + ' MB' : 'unavailable');
+  bar('sysDiskBar', dp, 'linear-gradient(90deg,#a060f0,#c080ff)');
+
+  set('sysPlatVal', d.platform || '—');
+  set('sysPlatSub', 'Node ' + (d.nodeVersion || '—'));
+
+  const chips = document.getElementById('sysChips');
+  if (chips) chips.innerHTML =
+    '<div class="info-chip"><div class="ic-lbl">Hostname</div><div class="ic-val">' + (d.hostname||'—') + '</div></div>' +
+    '<div class="info-chip"><div class="ic-lbl">CPU Model</div><div class="ic-val">' + (cpu.model||'—') + '</div></div>' +
+    '<div class="info-chip"><div class="ic-lbl">CPU Cores</div><div class="ic-val">' + (cpu.cores||'—') + '</div></div>' +
+    '<div class="info-chip"><div class="ic-lbl">Free RAM</div><div class="ic-val">' + fmtBytes(mem.free||0) + '</div></div>' +
+    '<div class="info-chip"><div class="ic-lbl">Node.js</div><div class="ic-val">' + (d.nodeVersion||'—') + '</div></div>' +
+    '<div class="info-chip"><div class="ic-lbl">Load Avg</div><div class="ic-val">' + (Array.isArray(d.loadAvg)?d.loadAvg.join(' / '):'—') + '</div></div>';
+
+  const ms = document.getElementById('miniSys');
+  if (ms) ms.innerHTML =
+    '<div class="msc">CPU <strong style="color:var(--g1)">' + cp + '%</strong></div>' +
+    '<div class="msc">RAM <strong style="color:var(--blue)">' + mp + '%</strong></div>' +
+    '<div class="msc">Session <strong style="color:var(--g2)">' + (d.sessionUptime||d.uptime||'—') + '</strong></div>' +
+    '<div class="msc">Disk <strong style="color:var(--purple)">' + dp + '%</strong></div>';
+}
+
+async function checkEnv() {
+  const box=document.getElementById('envLog');
+  box.innerHTML='<span class="ll inf">Checking environment...</span>\n';
+  const r=await api('/api/env');
+  box.innerHTML='';
+  if (r.output) {
+    r.output.split('\n').forEach(line=>{
+      if (!line.trim()) return;
+      const d=document.createElement('span');
+      const lc=line.toLowerCase();
+      if (lc.includes('error')||lc.includes('not found')||lc.includes('command not found')) d.className='ll bad';
+      else if (lc.includes('warn')) d.className='ll warn';
+      else if (line.match(/^v?\d/)) d.className='ll ok';
+      else d.className='ll out';
+      d.textContent=line;
+      box.appendChild(d); box.appendChild(document.createTextNode('\n'));
+    });
+  }
+}
+
+// ════════════════════════════════════════════════
+// OVERVIEW
+// ════════════════════════════════════════════════
+async function updateOverview() {
+  if (S.project) {
+    const plugins=await api(`/api/projects/${S.project}/plugins`);
+    const pc=Array.isArray(plugins)?plugins.length:0;
+    document.getElementById('sPlugins').textContent=pc;
+    document.getElementById('projInfoCard').innerHTML=`
+      <div class="card mb12">
+        <div class="card-hd">
+          <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Active Project
+        </div>
+        <div style="font-size:13px;color:var(--text2)">
+          <strong style="color:var(--text)">${S.project}</strong>
+          <span style="margin-left:12px;font-size:12px;font-family:var(--mono);color:var(--g2)">${pc} plugin${pc!==1?'s':''} installed</span>
+        </div>
+      </div>`;
+  }
+  const el=document.getElementById('recentBuilds');
+  if (!S.allBuilds.length) {
+    el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><h3>No builds yet</h3></div>`;
+    return;
+  }
+  el.innerHTML=S.allBuilds.slice(0,4).map(b=>`
+    <div class="bitem" style="margin-bottom:8px">
+      <div class="bitem-ic"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div class="bitem-info"><div class="bitem-name">${b.name}</div><div class="bitem-meta">${(b.size/1024/1024).toFixed(2)} MB &nbsp;·&nbsp; ${new Date(b.date).toLocaleDateString()}</div></div>
+      <a class="btn btn-green btn-xs" href="${b.downloadUrl}" download>Download</a>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('open');
+    _fbOpen = false;
+  }
+});
+
+// ════════════════════════════════════════════════
+// TOASTS
+// ════════════════════════════════════════════════
+const toastIcons = {
+  ok:'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  bad:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+  inf:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  wrn:'<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+};
+function toast(msg, type='inf') {
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`${toastIcons[type]||toastIcons.inf}<span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(105%)';},2800);
+  setTimeout(()=>t.remove(),3200);
+}
+
+// ════════════════════════════════════════════════
+// TERMINAL — start session when terminal tab opens
+// ════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  // Start terminal session on first visit
+  const origNav = window.nav;
+  // Patch nav to start PTY on terminal open
+});
+
+// ════════════════════════════════════════════════
+// BTOP WINDOW
+// ════════════════════════════════════════════════
+const BTOP = {
+  term: null,
+  fit:  null,
+  socketId: null,
+  running: false,
+  height: 340,
+};
+
+function btopInit() {
+  if (BTOP.term) return; // already created
+
+  BTOP.term = new Terminal({
+    theme: {
+      background: '#000000',
+      foreground: '#00ff88',
+      cursor:     '#00ff88',
+      black:      '#001a00', red:'#f05060', green:'#00ff88',
+      yellow:     '#f0c030', blue:'#40b0ff', magenta:'#a060f0',
+      cyan:       '#00ccff', white:'#c8e8c8',
+      brightBlack:'#2a5a2a', brightRed:'#ff6070', brightGreen:'#44ff99',
+      brightYellow:'#ffdd55', brightBlue:'#66c8ff',
+      brightMagenta:'#c080ff', brightCyan:'#44ddff', brightWhite:'#ffffff',
+    },
+    fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+    fontSize: 12,
+    lineHeight: 1.2,
+    cursorBlink: true,
+    cursorStyle: 'block',
+    scrollback: 1000,
+    allowProposedApi: true,
+  });
+
+  BTOP.fit = new FitAddon.FitAddon();
+  BTOP.term.loadAddon(BTOP.fit);
+
+  const container = document.getElementById('btopTermContainer');
+  BTOP.term.open(container);
+  setTimeout(() => { try { BTOP.fit.fit(); } catch(e) {} }, 50);
+
+  // Input goes to btop socket channel
+  BTOP.term.onData(data => {
+    if (S.socket) S.socket.emit('btop:input', data);
+  });
+
+  // resize observer
+  const ro = new ResizeObserver(() => {
+    try { BTOP.fit.fit(); } catch(e) {}
+    if (S.socket && BTOP.running) {
+      S.socket.emit('btop:resize', { cols: BTOP.term.cols, rows: BTOP.term.rows });
+    }
+  });
+  ro.observe(container);
+}
+
+function btopToggle() {
+  const win = document.getElementById('btopWindow');
+  if (BTOP.running) {
+    btopStop();
+  } else {
+    win.style.display = 'block';
+    btopStart();
+  }
+}
+
+function btopStart() {
+  btopInit();
+  BTOP.term.clear();
+  BTOP.term.writeln('\x1b[32mStarting btop...\x1b[0m');
+
+  try { BTOP.fit.fit(); } catch(e) {}
+
+  S.socket.emit('btop:start', {
+    cols: BTOP.term.cols || 120,
+    rows: BTOP.term.rows || 30,
+  });
+  BTOP.running = true;
+  document.getElementById('btopToggleBtn').textContent = 'Restart';
+  document.getElementById('btopStopBtn').style.display = '';
+}
+
+function btopStop() {
+  S.socket.emit('btop:stop');
+  BTOP.running = false;
+  document.getElementById('btopWindow').style.display = 'none';
+  document.getElementById('btopToggleBtn').textContent = 'Launch btop';
+  document.getElementById('btopStopBtn').style.display = 'none';
+  if (BTOP.term) BTOP.term.clear();
+}
+
+function btopResize(dir) {
+  const container = document.getElementById('btopTermContainer');
+  BTOP.height = Math.max(200, Math.min(700, BTOP.height + dir * 80));
+  container.style.height = BTOP.height + 'px';
+  setTimeout(() => {
+    try { BTOP.fit.fit(); } catch(e) {}
+    if (S.socket && BTOP.running)
+      S.socket.emit('btop:resize', { cols: BTOP.term.cols, rows: BTOP.term.rows });
+  }, 60);
+}
+
+// Socket listeners for btop (set up after socket connects)
+function initBtopSocket() {
+  S.socket.on('btop:data', data => {
+    if (BTOP.term) BTOP.term.write(data);
+  });
+  S.socket.on('btop:exit', d => {
+    BTOP.running = false;
+    document.getElementById('btopToggleBtn').textContent = 'Launch btop';
+    document.getElementById('btopStopBtn').style.display = 'none';
+    if (BTOP.term) BTOP.term.writeln('\r\n\x1b[90m[btop exited ' + d.code + ']\x1b[0m');
+  });
+  S.socket.on('btop:error', msg => {
+    if (BTOP.term) BTOP.term.writeln('\r\n\x1b[31m' + msg + '\x1b[0m');
+    document.getElementById('btopToggleBtn').textContent = 'Launch btop';
+    document.getElementById('btopStopBtn').style.display = 'none';
+    BTOP.running = false;
+  });
+}
+
+// Btop minimise — collapses to just the title bar
+let _btopMinimised = false;
+function btopMinimise() {
+  const container = document.getElementById('btopTermContainer');
+  _btopMinimised = !_btopMinimised;
+  container.style.height = _btopMinimised ? '0' : BTOP.height + 'px';
+  container.style.overflow = 'hidden';
+  container.style.transition = 'height 0.25s ease';
+}
+
+// Btop fullscreen — expands to fill the panel
+let _btopFullscreen = false;
+function btopFullscreen() {
+  const win = document.getElementById('btopWindow');
+  _btopFullscreen = !_btopFullscreen;
+  if (_btopFullscreen) {
+    win.style.position = 'fixed';
+    win.style.inset = '0';
+    win.style.zIndex = '999';
+    win.style.margin = '0';
+    win.style.borderRadius = '0';
+    document.getElementById('btopTermContainer').style.height = 'calc(100vh - 42px)';
+    document.getElementById('btopTermContainer').style.height = 'calc(100dvh - 42px)';
+  } else {
+    win.style.position = '';
+    win.style.inset = '';
+    win.style.zIndex = '';
+    win.style.margin = '';
+    win.style.borderRadius = '';
+    document.getElementById('btopTermContainer').style.height = BTOP.height + 'px';
+  }
+  setTimeout(() => {
+    try { BTOP.fit.fit(); } catch(e) {}
+    if (S.socket && BTOP.running)
+      S.socket.emit('btop:resize', { cols: BTOP.term.cols, rows: BTOP.term.rows });
+  }, 60);
+}
+
+// ── LOGOUT ────────────────────────────────────────────────
+async function switchToLauncher() {
+  try {
+    const r = await fetch('/api/launcher-url');
+    const d = await r.json();
+    if (d.url) { window.location.href = d.url; return; }
+  } catch(e) {}
+  // Fallback: prompt
+  const url = prompt('Enter your InfinityFree launcher URL:');
+  if (url) window.location.href = url;
+}
+
+async function logout() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch(_) {}
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('authUser');
+  window.location.href = '/login.html';
+}
+
+// ════════════════════════════════════════════════
+// USER MANAGEMENT
+// ════════════════════════════════════════════════
+let _allUsers = [];
+
+async function loadUsers() {
+  const data = await api('/api/auth/users');
+  if (data.error) return toast('Failed to load users: ' + data.error, 'bad');
+  _allUsers = Array.isArray(data) ? data : [];
+  renderUsers(_allUsers);
+  // update stats
+  document.getElementById('uStatTotal').textContent  = _allUsers.length;
+  document.getElementById('uStatAdmins').textContent = _allUsers.filter(u => u.role === 'admin').length;
+  document.getElementById('uStatActive').textContent = _allUsers.filter(u => u.active).length;
+}
+
+function filterUsers(q) {
+  const filtered = _allUsers.filter(u =>
+    u.username.toLowerCase().includes(q.toLowerCase()) ||
+    u.role.toLowerCase().includes(q.toLowerCase())
+  );
+  renderUsers(filtered);
+}
+
+function renderUsers(users) {
+  const list = document.getElementById('userList');
+  if (!users.length) {
+    list.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><h3>No users found</h3></div>`;
+    return;
+  }
+  const me = sessionStorage.getItem('authUser') || '';
+  list.innerHTML = users.map(u => {
+    const initials = u.username.slice(0,2).toUpperCase();
+    const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString() : 'Never';
+    const isMe = u.username === me;
+    return `
+      <div class="user-card">
+        <div class="user-avatar ${u.role}">${initials}</div>
+        <div class="user-info">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="user-name">${u.username}</span>
+            ${isMe ? '<span style="font-size:10px;color:var(--text3);font-family:var(--mono)">(you)</span>' : ''}
+            <span class="role-badge ${u.role}">${u.role}</span>
+          </div>
+          <div class="user-meta">
+            Last login: ${lastLogin}
+            &nbsp;·&nbsp; ID: ${u.id}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div class="status-dot ${u.active ? 'active' : 'inactive'}" title="${u.active ? 'Active' : 'Disabled'}"></div>
+          <button class="btn btn-ghost btn-xs" onclick="openEditUser(${u.id}, '${u.username}', '${u.role}', ${u.active})">
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          ${!isMe ? `<button class="btn btn-danger btn-xs" onclick="openDeleteUser(${u.id}, '${u.username}')">Delete</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── ADD USER ─────────────────────────────────────
+async function addUser() {
+  const username = document.getElementById('auName').value.trim();
+  const password = document.getElementById('auPw').value;
+  const role     = document.getElementById('auRole').value;
+  if (!username) return toast('Username required', 'bad');
+  if (!password) return toast('Password required', 'bad');
+  if (password.length < 6) return toast('Password must be 6+ characters', 'bad');
+
+  const r = await api('/api/auth/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role }),
+  });
+  if (r.error) return toast(r.error, 'bad');
+  closeModal('addUserModal');
+  document.getElementById('auName').value = '';
+  document.getElementById('auPw').value = '';
+  document.getElementById('auRole').value = 'user';
+  toast('User created: ' + username, 'ok');
+  loadUsers();
+}
+
+// ── EDIT USER ────────────────────────────────────
+function openEditUser(id, username, role, active) {
+  document.getElementById('euId').value     = id;
+  document.getElementById('euName').value   = username;
+  document.getElementById('euPw').value     = '';
+  document.getElementById('euRole').value   = role;
+  document.getElementById('euActive').value = active ? '1' : '0';
+  openModal('editUserModal');
+}
+
+async function saveUser() {
+  const id       = document.getElementById('euId').value;
+  const username = document.getElementById('euName').value.trim();
+  const password = document.getElementById('euPw').value;
+  const role     = document.getElementById('euRole').value;
+  const active   = document.getElementById('euActive').value === '1';
+  if (!username) return toast('Username required', 'bad');
+  if (password && password.length < 6) return toast('Password must be 6+ characters', 'bad');
+
+  const body = { username, role, active };
+  if (password) body.password = password;
+
+  const r = await api('/api/auth/users/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (r.error) return toast(r.error, 'bad');
+  closeModal('editUserModal');
+  toast('User updated', 'ok');
+  loadUsers();
+}
+
+// ── DELETE USER ──────────────────────────────────
+function openDeleteUser(id, username) {
+  document.getElementById('delUserId').value = id;
+  document.getElementById('delUserName').textContent = username;
+  openModal('deleteUserModal');
+}
+
+async function deleteUser() {
+  const id = document.getElementById('delUserId').value;
+  const r = await api('/api/auth/users/' + id, { method: 'DELETE' });
+  if (r.error) return toast(r.error, 'bad');
+  closeModal('deleteUserModal');
+  toast('User deleted', 'inf');
+  loadUsers();
+}
+
+// ── TOGGLE PW IN MODAL ───────────────────────────
+function toggleModalPw(inputId, iconId) {
+  const inp  = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1=\"1\" y1=\"1\" x2=\"23\" y2=\"23\"/>';
+  } else {
+    inp.type = 'password';
+    icon.innerHTML = '<path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>';
+  }
+}
+
+// ════════════════════════════════════════════════
+// ROLE SYSTEM
+// ════════════════════════════════════════════════
+let CURRENT_ROLE = 'user'; // will be set on load
+
+async function applyRole() {
+  try {
+    const me = await api('/api/auth/me');
+    if (me && me.role) {
+      CURRENT_ROLE = me.role;
+      sessionStorage.setItem('authRole', me.role);
+      sessionStorage.setItem('authUser', me.username);
+    }
+  } catch(e) {}
+
+  const role = CURRENT_ROLE;
+  document.body.classList.remove('role-admin','role-user','role-viewer');
+  document.body.classList.add('role-' + role);
+
+  if (role === 'viewer') {
+    // Viewers only see the viewer page
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-viewer').classList.add('active');
+    // Hide build button
+    document.getElementById('topBuildBtn').style.display = 'none';
+    // Hide new project button
+    const newProjBtn = document.querySelector('.ic-btn:not([onclick*="logout"])');
+    // Load latest APK for viewer
+    loadViewerApk();
+    return;
+  }
+
+  // Non-viewer: set default terminal mode
+  if (role === 'admin') {
+    setTermMode('pty');  // admins default to PTY
+  } else {
+    setTermMode('simple'); // users default to simple
+  }
+}
+
+async function loadViewerApk() {
+  const r = await api('/api/auth/latest-build');
+  const nameEl = document.getElementById('viewerApkName');
+  const metaEl = document.getElementById('viewerApkMeta');
+  const dlWrap = document.getElementById('viewerDlWrap');
+
+  if (r.error || !r.name) {
+    nameEl.textContent = 'No builds available yet';
+    metaEl.textContent = 'Check back later';
+    dlWrap.innerHTML = '';
+    return;
+  }
+  nameEl.textContent = r.name;
+  metaEl.textContent = 'Built ' + new Date(r.date).toLocaleString();
+  dlWrap.innerHTML = '<a class="viewer-dl-btn" href="' + r.downloadUrl + '" download><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download APK</a>';
+}
+
+// ════════════════════════════════════════════════
+// TERMINAL MODE SWITCHER
+// ════════════════════════════════════════════════
+let _termMode = 'simple'; // default, overridden by role
+let _termStarted = false;
+let _simpleHistory = [], _simpleHistIdx = -1, _simpleBusy = false;
+
+function setTermMode(mode) {
+  _termMode = mode;
+  const ptyView    = document.getElementById('ptyTermView');
+  const simpleView = document.getElementById('simpleTermView');
+  ptyView.style.display    = mode === 'pty'    ? 'flex' : 'none';
+  simpleView.style.display = mode === 'simple' ? 'flex' : 'none';
+
+  // Update switcher button states (both PTY and simple views have them)
+  ['tm','sm'].forEach(prefix => {
+    const ptyBtn    = document.getElementById(prefix + 'Pty');
+    const simpleBtn = document.getElementById(prefix + 'Simple');
+    if (ptyBtn)    ptyBtn.classList.toggle('active', mode === 'pty');
+    if (simpleBtn) simpleBtn.classList.toggle('active', mode === 'simple');
+  });
+
+  if (mode === 'pty' && !_termStarted) {
+    _termStarted = true;
+    setTimeout(() => {
+      try { S.fitAddon.fit(); } catch(e) {}
+      S.xterm.focus();
+      startTermSession();
+    }, 150);
+  }
+  if (mode === 'pty') {
+    setTimeout(() => { try { S.fitAddon.fit(); } catch(e) {} S.xterm.focus(); }, 80);
+  }
+  if (mode === 'simple') {
+    setTimeout(() => document.getElementById('simpleInp').focus(), 80);
+  }
+}
+
+// ── PTY TERMINAL ─────────────────────────────────
+// Fix: when PTY exits (e.g. user typed "exit"), show reconnect button
+// and auto-restart the session
+function handleTermExit(code) {
+  document.getElementById('termBusy').style.display = 'none';
+  if (S.xterm) {
+    S.xterm.write('\r\n\x1b[90m[Session ended. Starting new session...]\x1b[0m\r\n');
+  }
+  // Auto restart after 1.5s
+  setTimeout(() => {
+    if (_termMode === 'pty') {
+      startTermSession();
+    }
+  }, 1500);
+}
+
+function reconnectTerm() {
+  if (S.xterm) S.xterm.write('\r\n\x1b[32mReconnecting...\x1b[0m\r\n');
+  startTermSession();
+}
+
+// ── SIMPLE TERMINAL ───────────────────────────────
+function initSimpleTerminal() {
+  const inp = document.getElementById('simpleInp');
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); simpleSend(); }
+    else if (e.key === 'ArrowUp')   { _simpleHistIdx = Math.min(_simpleHistIdx+1, _simpleHistory.length-1); inp.value = _simpleHistory[_simpleHistIdx]||''; e.preventDefault(); }
+    else if (e.key === 'ArrowDown') { _simpleHistIdx = Math.max(_simpleHistIdx-1, -1); inp.value = _simpleHistIdx>=0?_simpleHistory[_simpleHistIdx]:''; e.preventDefault(); }
+  });
+}
+
+function simpleSend() {
+  const inp = document.getElementById('simpleInp');
+  const cmd = inp.value.trim();
+  if (!cmd || _simpleBusy) return;
+  _simpleHistory.unshift(cmd);
+  _simpleHistIdx = -1;
+  inp.value = '';
+  const prompt = document.getElementById('simplePromptLbl').textContent;
+  simpleAppend(prompt + ' ' + cmd, 'si');
+  if (!S.socket || !S.socket.connected) { simpleAppend('Not connected to server', 'se'); return; }
+  inp.disabled = true;
+  _simpleBusy = true;
+  S.socket.emit('terminal:run', { command: cmd, project: S.project });
+}
+
+function simpleRun(cmd) {
+  nav('terminal');
+  setTimeout(() => {
+    document.getElementById('simpleInp').value = cmd;
+    simpleSend();
+  }, 150);
+}
+
+function simpleAppend(text, cls='so') {
+  const out = document.getElementById('simpleTermOut');
+  text.split('\n').forEach(line => {
+    if (!line.trim() && cls === 'so') return;
+    const d = document.createElement('span');
+    let c = cls;
+    if (cls === 'so') {
+      const lc = line.toLowerCase();
+      if (lc.match(/\berror\b/) && !lc.startsWith('//')) c = 'se';
+      else if (lc.match(/success|built|complete/i)) c = 'tok';
+      else if (lc.match(/fail|fatal/i)) c = 'tfl';
+    }
+    d.className = 'stl ' + c;
+    d.textContent = line;
+    out.appendChild(d);
+    out.appendChild(document.createTextNode('\n'));
+  });
+  out.scrollTop = out.scrollHeight;
+}
+
+function simpleTermClear() { document.getElementById('simpleTermOut').innerHTML = ''; }
+
+// Override nav to handle terminal mode + viewer restrictions
+const _origNav = nav;
+window.nav = function(v) {
+  // Block viewer from restricted pages
+  if (CURRENT_ROLE === 'viewer') {
+    // viewer can only see their own page
+    return;
+  }
+  _origNav(v);
+  if (v === 'terminal') {
+    if (_termMode === 'pty' && !_termStarted) {
+      _termStarted = true;
+      setTimeout(() => {
+        try { S.fitAddon.fit(); } catch(e) {}
+        S.xterm.focus();
+        startTermSession();
+      }, 200);
+    }
+    if (_termMode === 'pty') setTimeout(() => { try { S.fitAddon.fit(); } catch(e) {} S.xterm.focus(); }, 80);
+    if (_termMode === 'simple') setTimeout(() => document.getElementById('simpleInp').focus(), 80);
+  }
+};
+
+// ════════════════════════════════════════════════
+// ITC CLOCK
+// ════════════════════════════════════════════════
+function updateItcClock() {
+  const el = document.getElementById('itcClock');
+  if (!el) return;
+  const now = new Date();
+  // IST = UTC+5:30
+  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+  const h = ist.getUTCHours().toString().padStart(2,'0');
+  const m = ist.getUTCMinutes().toString().padStart(2,'0');
+  const s = ist.getUTCSeconds().toString().padStart(2,'0');
+  el.textContent = h + ':' + m + ':' + s + ' IST';
+}
+setInterval(updateItcClock, 1000);
+updateItcClock();
+
+// ════════════════════════════════════════════════
+// THEME SYSTEM
+// ════════════════════════════════════════════════
+const THEMES = ['green-dark','green-light','purple-dark','purple-light','hybrid-dark','hybrid-light'];
+
+function applyTheme(theme) {
+  THEMES.forEach(t => document.body.classList.remove('theme-' + t));
+  if (theme && theme !== 'green-dark') document.body.classList.add('theme-' + theme);
+  localStorage.setItem('builddeck_theme', theme);
+  const sel = document.getElementById('themeSelect');
+  if (sel) sel.value = theme || 'green-dark';
+}
+
+function loadSavedTheme() {
+  const saved = localStorage.getItem('builddeck_theme');
+  if (saved) applyTheme(saved);
+}
+
+// ════════════════════════════════════════════════
+// SYSTEM SUBMENU TOGGLE
+// ════════════════════════════════════════════════
+let _sysMenuOpen = false;
+function toggleSysMenu() {
+  _sysMenuOpen = !_sysMenuOpen;
+  const menu = document.getElementById('sysSubMenu');
+  const chevron = document.getElementById('sysChevron');
+  if (menu) menu.style.display = _sysMenuOpen ? 'block' : 'none';
+  if (chevron) chevron.style.transform = _sysMenuOpen ? 'rotate(180deg)' : '';
+  if (_sysMenuOpen) { refreshSys(); setTimeout(refreshSys, 400); }
+}
+
+// ════════════════════════════════════════════════
+// BTOP IN ITS OWN PANEL (full size, no resize needed)
+// ════════════════════════════════════════════════
+let _btopPanelInit = false;
+let _btopPanelTerm = null, _btopPanelFit = null;
+
+function initBtopPanel() {
+  if (_btopPanelInit) return;
+  _btopPanelInit = true;
+  _btopPanelTerm = new Terminal({
+    theme: {
+      background:'#000000',foreground:'#00ff88',cursor:'#00ff88',
+      black:'#001a00',red:'#f05060',green:'#00ff88',yellow:'#f0c030',
+      blue:'#40b0ff',magenta:'#a060f0',cyan:'#00ccff',white:'#c8e8c8',
+      brightBlack:'#2a5a2a',brightRed:'#ff6070',brightGreen:'#44ff99',
+      brightYellow:'#ffdd55',brightBlue:'#66c8ff',brightMagenta:'#c080ff',
+      brightCyan:'#44ddff',brightWhite:'#ffffff',
+    },
+    fontFamily:"'JetBrains Mono','Cascadia Code',monospace",
+    fontSize:13,lineHeight:1.2,cursorBlink:true,cursorStyle:'block',
+    scrollback:2000,allowProposedApi:true,
+  });
+  _btopPanelFit = new FitAddon.FitAddon();
+  _btopPanelTerm.loadAddon(_btopPanelFit);
+
+  const container = document.getElementById('btopPanelContainer');
+  container.innerHTML = ''; // clear placeholder
+  _btopPanelTerm.open(container);
+
+  _btopPanelTerm.onData(d => { if (S.socket) S.socket.emit('btop:input', d); });
+
+  new ResizeObserver(() => {
+    try { _btopPanelFit.fit(); } catch(e) {}
+    if (S.socket && BTOP.running) S.socket.emit('btop:resize', { cols:_btopPanelTerm.cols, rows:_btopPanelTerm.rows });
+  }).observe(container);
+
+  setTimeout(() => {
+    try { _btopPanelFit.fit(); } catch(e) {}
+    btopStartPanel();
+  }, 100);
+}
+
+function btopStartPanel() {
+  if (!_btopPanelTerm) return;
+  _btopPanelTerm.clear();
+  _btopPanelTerm.writeln('\x1b[32mStarting btop...\x1b[0m');
+  try { _btopPanelFit.fit(); } catch(e) {}
+  S.socket.emit('btop:start', { cols: _btopPanelTerm.cols || 120, rows: _btopPanelTerm.rows || 36 });
+  BTOP.running = true;
+  // Override btop:data to go to panel term
+  BTOP._panelMode = true;
+  document.getElementById('btopToggleBtn').textContent = 'Restart';
+  document.getElementById('btopStopBtn').style.display = '';
+}
+
+// Override initBtopSocket to handle panel mode
+const _origBtopData = null;
+
+// Hook btop:data into panel terminal if in panel mode
+function patchBtopSocketForPanel() {
+  S.socket.on('btop:paneldata', d => { if (_btopPanelTerm) _btopPanelTerm.write(d); });
+}
+
+// ════════════════════════════════════════════════
+// TERMINAL RESIZE HANDLE
+// ════════════════════════════════════════════════
+(function initTermResize() {
+  let resizing = false, startY = 0, startH = 0;
+  document.addEventListener('DOMContentLoaded', () => {
+    const handle = document.getElementById('termResizeHandle');
+    if (!handle) return;
+    const panel = document.getElementById('panel-terminal');
+    handle.addEventListener('mousedown', e => {
+      resizing = true;
+      startY = e.clientY;
+      startH = panel.offsetHeight;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!resizing) return;
+      const newH = startH + (e.clientY - startY);
+      if (newH > 200) {
+        panel.style.height = newH + 'px';
+        panel.style.flex = 'none';
+        try { S.fitAddon.fit(); } catch(e2) {}
+      }
+    });
+    document.addEventListener('mouseup', () => { resizing = false; });
+    // Touch support
+    handle.addEventListener('touchstart', e => {
+      resizing = true;
+      startY = e.touches[0].clientY;
+      startH = panel.offsetHeight;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!resizing) return;
+      const newH = startH + (e.touches[0].clientY - startY);
+      if (newH > 200) { panel.style.height = newH + 'px'; panel.style.flex = 'none'; try { S.fitAddon.fit(); } catch(e2) {} }
+    }, { passive: true });
+    document.addEventListener('touchend', () => { resizing = false; });
+  });
+})();
+
+// ════════════════════════════════════════════════
+// DEV SETTINGS — BANNED COMMANDS + PERMS + THEME
+// ════════════════════════════════════════════════
+function loadDevSettings() {
+  const banned = JSON.parse(localStorage.getItem('builddeck_banned') || '{"pty":[],"simple":[]}');
+  const ptyEl = document.getElementById('devBannedPty');
+  const simEl = document.getElementById('devBannedSimple');
+  if (ptyEl) ptyEl.value = (banned.pty || []).join('\n');
+  if (simEl) simEl.value = (banned.simple || []).join('\n');
+
+  // Render perms grid
+  const grid = document.getElementById('devPermGrid');
+  if (!grid) return;
+  const panels = ['overview','sysinfo','editor','build','downloads','plugins','config','notes','users','terminal','dev'];
+  const roles  = ['admin','user','viewer'];
+  const perms  = JSON.parse(localStorage.getItem('builddeck_perms') || '{}');
+  let html = '<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px"><thead><tr><th style="text-align:left;padding:6px;color:var(--text2)">Panel</th>';
+  roles.forEach(r => html += '<th style="padding:6px;color:var(--text2)">' + r + '</th>');
+  html += '</tr></thead><tbody>';
+  panels.forEach(p => {
+    html += '<tr style="border-top:1px solid var(--border)"><td style="padding:6px;color:var(--text)">' + p + '</td>';
+    roles.forEach(r => {
+      const key = p + '_' + r;
+      const checked = perms[key] !== false ? 'checked' : '';
+      html += '<td style="text-align:center;padding:6px"><input type="checkbox" id="perm_' + key + '" ' + checked + ' style="accent-color:var(--g1)"></td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  grid.innerHTML = html;
+}
+
+function saveBannedCmds() {
+  const pty    = (document.getElementById('devBannedPty').value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  const simple = (document.getElementById('devBannedSimple').value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  localStorage.setItem('builddeck_banned', JSON.stringify({ pty, simple }));
+  // Send to server
+  api('/api/dev/banned', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pty, simple }) });
+  toast('Banned commands saved', 'ok');
+}
+
+function savePerms() {
+  const panels = ['overview','sysinfo','editor','build','downloads','plugins','config','notes','users','terminal','dev'];
+  const roles  = ['admin','user','viewer'];
+  const perms  = {};
+  panels.forEach(p => roles.forEach(r => {
+    const el = document.getElementById('perm_' + p + '_' + r);
+    if (el) perms[p + '_' + r] = el.checked;
+  }));
+  localStorage.setItem('builddeck_perms', JSON.stringify(perms));
+  toast('Permissions saved', 'ok');
+}
+
+// Hook nav to load dev settings when opening dev panel
+const _navWithDev = window.nav;
+window.nav = function(v) {
+  if (v === 'btop') {
+    _navWithDev('btop');
+    setTimeout(() => { initBtopPanel(); }, 100);
+    return;
+  }
+  if (v === 'dev') {
+    _navWithDev('dev');
+    loadDevSettings();
+    return;
+  }
+  if (v === 'sysinfo') {
+    _sysMenuOpen = true;
+    const menu = document.getElementById('sysSubMenu');
+    if (menu) menu.style.display = 'block';
+  }
+  _navWithDev(v);
+};
+
+// ════════════════════════════════════════════════
+// INIT — load theme on boot
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => { loadSavedTheme(); });
+
+// Hook save-on-leave for notes
+document.addEventListener('DOMContentLoaded', () => {
+  // Save notes when navigating away from notes panel
+  const origNavForNotes = window.nav;
+  // Notes saved by existing timer — already handled
+});
+</script>
+</body>
+</html>
