@@ -3,6 +3,13 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+cmdline-tools/ 
+commandlinetools-linux-14742923_latest.zip
+platform-tools/
+build-tools/
+licenses/
+platforms/
+cordovadeck.zip
 
 # Runtime data
 pids
@@ -101,3 +108,8 @@ logs
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Local Cordova CI / generated project builds (untracked)
+QBJS_MOBILE/platforms/
+QBJS_MOBILE/plugins/
+QBJS_MOBILE/www/
