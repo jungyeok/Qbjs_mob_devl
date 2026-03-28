@@ -7,6 +7,7 @@ const fs = require('fs');
 const { exec, spawn } = require('child_process');
 const cors = require('cors');
 const archiver = require('archiver');
+const { buildTree, fmtUptime } = require('./utils');
 
 // Auth — login page + user management, no route blocking
 let authModule = null, session = null;
@@ -141,22 +142,6 @@ app.delete('/api/projects/:project', (req, res) => {
 });
 
 // ── File Tree ─────────────────────────────────────────────────────────────────
-
-function buildTree(dir, base = '') {
-  const items = [];
-  if (!fs.existsSync(dir)) return items;
-  fs.readdirSync(dir).forEach(name => {
-    const full = path.join(dir, name);
-    const rel = path.join(base, name);
-    const stat = fs.statSync(full);
-    if (stat.isDirectory()) {
-      items.push({ name, path: rel, type: 'dir', children: buildTree(full, rel) });
-    } else {
-      items.push({ name, path: rel, type: 'file', size: stat.size });
-    }
-  });
-  return items;
-}
 
 app.get('/api/projects/:project/files', (req, res) => {
   const wwwPath = path.join(PROJECTS_DIR, req.params.project, 'www');
@@ -352,14 +337,6 @@ app.get('/api/projects/:project/export', (req, res) => {
 
 const os = require('os');
 const SERVER_START = Date.now();
-
-function fmtUptime(secs) {
-  const d = Math.floor(secs / 86400);
-  const h = Math.floor((secs % 86400) / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = Math.floor(secs % 60);
-  return d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
-}
 
 app.get('/api/sysinfo', async (req, res) => {
   try {
@@ -678,7 +655,7 @@ app.get('/api/env-versions', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 BuildDeck running on http://localhost:${PORT}`);
+  console.log(`🚀 CordovaDeck running on http://localhost:${PORT}`);
 });
 
 // Upgrade HTTP → WebSocket for SSH relay
