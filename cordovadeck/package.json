@@ -18,8 +18,8 @@
     "socket.io": "^4.6.1",
     "bcryptjs": "^2.4.3",
     "express-session": "^1.17.3",
-    "mysql2": "^3.6.0",
-    "express-mysql-session": "^3.0.0",
+    "sqlite3": "^5.1.6",
+    "connect-sqlite3": "^0.9.13",
     "ssh2": "^1.15.0",
     "ws": "^8.14.2",
     "nodemailer": "^6.9.7"

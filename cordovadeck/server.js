@@ -10,10 +10,11 @@ const archiver = require('archiver');
 const { buildTree, fmtUptime } = require('./utils');
 
 // Auth — login page + user management, no route blocking
-let authModule = null, session = null;
+let authModule = null, session = null, SQLiteStore = null;
 try {
   authModule = require('./auth');
   session = require('express-session');
+  SQLiteStore = require('connect-sqlite3')(session);
 } catch(e) {
   console.warn('Auth modules not installed, running without auth.');
 }
@@ -31,6 +32,7 @@ if (session) {
     secret: process.env.SESSION_SECRET || 'cordovadeck-dev-secret',
     resave: true,
     saveUninitialized: true,
+    store: SQLiteStore ? new SQLiteStore({ db: 'sessions.db', dir: __dirname }) : undefined,
     cookie: {
       secure: false,
       httpOnly: false,

@@ -1,11 +1,12 @@
 // ── auth.js — CordovaDeck Authentication Module ──────────────────────────────
-// Uses MySQL for user storage + bcrypt for password hashing
-// Sessions stored server-side via express-session + connect-mysql-session
+// Uses SQLite for user storage + bcrypt for password hashing
+// Sessions stored server-side via express-session + connect-sqlite3
 //
-// Install deps:  npm install bcryptjs express-session mysql2 connect-mysql-session
+// Install deps:  npm install bcryptjs express-session sqlite3 connect-sqlite3
 
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
+const sqlite3  = require('sqlite3').verbose();
 
 // OTP store for password reset
 const otpStore = {};
@@ -28,67 +29,83 @@ async function sendSecEmail(subject, body) {
     return true;
   } catch(e) { console.warn('Email failed:', e.message); return false; }
 }
-const mysql    = require('mysql2/promise');
+
 const router   = express.Router();
 
-// ── DB POOL ──────────────────────────────────────────────────────────────────
-// Set these via environment variables in your Codespace secrets:
-//   MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
-let pool;
-function getPool() {
-  if (!pool) {
-    pool = mysql.createPool({
-      host:     process.env.MYSQL_HOST     || 'localhost',
-      user:     process.env.MYSQL_USER     || 'cordovadeck',
-      password: process.env.MYSQL_PASSWORD || '',
-      database: process.env.MYSQL_DATABASE || 'cordovadeck',
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
+// ── DB ──────────────────────────────────────────────────────────────────
+// SQLite database file
+let db;
+function getDb() {
+  if (!db) {
+    db = new sqlite3.Database('./cordovadeck.db', (err) => {
+      if (err) {
+        console.error('Failed to open SQLite DB:', err.message);
+      } else {
+        console.log('Connected to SQLite DB');
+      }
     });
   }
-  return pool;
+  return db;
 }
 
 // ── INIT DB ───────────────────────────────────────────────────────────────────
 // Call this on server startup to ensure tables exist
 async function initDb() {
   try {
-    const db = getPool();
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS users (
-        id         INT AUTO_INCREMENT PRIMARY KEY,
-        username   VARCHAR(64) NOT NULL UNIQUE,
-        password   VARCHAR(255) NOT NULL,
-        role       ENUM('admin','user','viewer') NOT NULL DEFAULT 'user',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_login DATETIME,
-        active     TINYINT(1) NOT NULL DEFAULT 1
-      )
-    `);
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS login_log (
-        id         INT AUTO_INCREMENT PRIMARY KEY,
-        username   VARCHAR(64),
-        ip         VARCHAR(64),
-        success    TINYINT(1),
-        ts         DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    const db = getDb();
+    await new Promise((resolve, reject) => {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          username   TEXT NOT NULL UNIQUE,
+          password   TEXT NOT NULL,
+          role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user','viewer')),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          last_login DATETIME,
+          active     INTEGER NOT NULL DEFAULT 1
+        )
+      `, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    await new Promise((resolve, reject) => {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS login_log (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          username   TEXT,
+          ip         TEXT,
+          success    INTEGER,
+          ts         DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     // Create default admin if no users exist
-    const [rows] = await db.execute('SELECT COUNT(*) AS cnt FROM users');
-    if (rows[0].cnt === 0) {
+    const rows = await new Promise((resolve, reject) => {
+      db.get('SELECT COUNT(*) AS cnt FROM users', (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+    if (rows.cnt === 0) {
       const hash = await bcrypt.hash('changeme123', 12);
-      await db.execute(
-        'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-        ['admin', hash, 'admin']
-      );
+      await new Promise((resolve, reject) => {
+        db.run(
+          'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+          ['admin', hash, 'admin'], (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
       console.log('✅ Default admin created: admin / changeme123 — CHANGE THIS IMMEDIATELY');
     }
     console.log('✅ Auth DB ready');
   } catch (e) {
-    console.warn('⚠️  Auth DB init failed (MySQL may not be configured):', e.message);
-    console.warn('   Set MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE env vars');
+    console.warn('⚠️  Auth DB init failed:', e.message);
   }
 }
 
@@ -139,8 +156,14 @@ router.post('/login', async (req, res) => {
   }
 
   const { username, password } = req.body || {};
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password required' });
+  if (!username) {
+    return res.status(400).json({ error: 'Username required' });
+  }
+
+  // Check for bypass mode (dev feature) — allow empty password if bypass
+  const isBypass = req.session.bypass === true;
+  if (!password && !isBypass) {
+    return res.status(400).json({ error: 'Password required' });
   }
 
   // Sanitise — only allow alphanumeric + underscore + hyphen in username
@@ -149,23 +172,45 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const db = getPool();
-    const [rows] = await db.execute(
-      'SELECT id, username, password, role, active FROM users WHERE username = ?',
-      [username]
-    );
+    const db = getDb();
+    const user = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id, username, password, role, active FROM users WHERE username = ?',
+        [username], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
 
-    const user = rows[0];
+    // Check for bypass mode (dev feature)
+    const isBypass = req.session.bypass === true;
 
-    // Always run bcrypt compare to prevent timing attacks
-    const hashToCompare = user ? user.password : '$2a$12$invalidhashfillertostoptimingattacks12345678901';
-    const match = await bcrypt.compare(password, hashToCompare);
+    // If bypass, allow login as admin
+    let userToUse = user;
+    if (isBypass) {
+      userToUse = { id: 1, username: 'admin', password: '', role: 'admin', active: 1 };
+    }
 
-    if (!user || !match || !user.active) {
+    // Always run bcrypt compare to prevent timing attacks (unless bypass)
+    let match = false;
+    if (isBypass) {
+      match = true; // Bypass password check
+    } else {
+      const hashToCompare = userToUse ? userToUse.password : '$2a$12$invalidhashfillertostoptimingattacks12345678901';
+      match = await bcrypt.compare(password, hashToCompare);
+    }
+
+    if (!userToUse || !match || !userToUse.active) {
       recordFail(ip);
       // Log failed attempt
       try {
-        await db.execute('INSERT INTO login_log (username, ip, success) VALUES (?, ?, 0)', [username, ip]);
+        await new Promise((resolve, reject) => {
+          db.run('INSERT INTO login_log (username, ip, success) VALUES (?, ?, 0)', [username, ip], (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
       } catch (_) {}
       return res.status(401).json({ error: 'Invalid username or password' });
     }
@@ -173,17 +218,29 @@ router.post('/login', async (req, res) => {
     // Success — clear rate limit, update last_login, return token
     clearFails(ip);
 
-    await db.execute('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+    if (userToUse.id !== 1 || user) { // Only update if real user
+      await new Promise((resolve, reject) => {
+        db.run('UPDATE users SET last_login = datetime("now") WHERE id = ?', [userToUse.id], (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
 
     // Log success
     try {
-      await db.execute('INSERT INTO login_log (username, ip, success) VALUES (?, ?, 1)', [username, ip]);
+      await new Promise((resolve, reject) => {
+        db.run('INSERT INTO login_log (username, ip, success) VALUES (?, ?, 1)', [username, ip], (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
     } catch (_) {}
 
     // Set server-side session
-    req.session.userId   = user.id;
-    req.session.username = user.username;
-    req.session.role     = user.role;
+    req.session.userId   = userToUse.id;
+    req.session.username = userToUse.username;
+    req.session.role     = userToUse.role;
     req.session.loginAt  = Date.now();
 
     // Force save session before responding
@@ -194,8 +251,8 @@ router.post('/login', async (req, res) => {
       }
       return res.json({
         success:  true,
-        username: user.username,
-        role:     user.role,
+        username: userToUse.username,
+        role:     userToUse.role,
         token:    req.session.id,
       });
     });
@@ -206,17 +263,35 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// POST /api/auth/bypass — dev feature: enable 10-second auth bypass
+router.post('/bypass', (req, res) => {
+  req.session.bypass = true;
+  // Clear bypass after 10 seconds
+  setTimeout(() => {
+    if (req.session) req.session.bypass = false;
+  }, 10000);
+  req.session.save(err => {
+    if (err) return res.status(500).json({ error: 'Session error' });
+    res.json({ success: true, message: 'Auth bypass enabled for 10 seconds' });
+  });
+});
+
 // POST /api/auth/check-user — step 1 of reset (no security, just checks username exists)
 router.post('/check-user', async (req, res) => {
   const { username } = req.body || {};
   if (!username) return res.status(400).json({ error: 'Username required' });
   try {
-    const db = getPool();
-    const [rows] = await db.execute(
-      'SELECT id FROM users WHERE username = ? AND active = 1',
-      [username]
-    );
-    if (rows.length === 0) return res.status(404).json({ error: 'Username not found' });
+    const db = getDb();
+    const row = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id FROM users WHERE username = ? AND active = 1',
+        [username], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+    if (!row) return res.status(404).json({ error: 'Username not found' });
     res.json({ exists: true });
   } catch(e) {
     res.status(500).json({ error: 'Server error' });
@@ -229,13 +304,18 @@ router.post('/reset-password', async (req, res) => {
   if (!username || !newPassword) return res.status(400).json({ error: 'Username and new password required' });
   if (newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
   try {
-    const db = getPool();
+    const db = getDb();
     const hash = await bcrypt.hash(newPassword, 12);
-    const [result] = await db.execute(
-      'UPDATE users SET password = ? WHERE username = ? AND active = 1',
-      [hash, username]
-    );
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE users SET password = ? WHERE username = ? AND active = 1',
+        [hash, username], function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
+        }
+      );
+    });
+    if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
     // Send notification email if configured
     try { await sendSecEmail('Password Changed', 'Password was changed for user: ' + username); } catch(e) {}
     // Security log
@@ -251,9 +331,14 @@ router.post('/request-reset', async (req, res) => {
   const { username } = req.body || {};
   if (!username) return res.status(400).json({ error: 'Username required' });
   try {
-    const db = getPool();
-    const [rows] = await db.execute('SELECT id, username FROM users WHERE username = ? AND active = 1', [username]);
-    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    const db = getDb();
+    const row = await new Promise((resolve, reject) => {
+      db.get('SELECT id, username FROM users WHERE username = ? AND active = 1', [username], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+    if (!row) return res.status(404).json({ error: 'User not found' });
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = Date.now() + 10 * 60 * 1000; // 10 min
@@ -278,9 +363,14 @@ router.post('/verify-otp', async (req, res) => {
   if (Date.now() > stored.expires) { delete otpStore[username]; return res.status(400).json({ error: 'OTP expired' }); }
   delete otpStore[username];
   try {
-    const db = getPool();
+    const db = getDb();
     const hash = await bcrypt.hash(newPassword, 12);
-    await db.execute('UPDATE users SET password = ? WHERE username = ?', [hash, username]);
+    await new Promise((resolve, reject) => {
+      db.run('UPDATE users SET password = ? WHERE username = ?', [hash, username], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -331,10 +421,16 @@ function requireAuth(req, res, next) {
 // GET /api/auth/users — list all users (admin only in future, open for now)
 router.get('/users', async (req, res) => {
   try {
-    const db = getPool();
-    const [rows] = await db.execute(
-      'SELECT id, username, role, active, created_at, last_login FROM users ORDER BY id ASC'
-    );
+    const db = getDb();
+    const rows = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT id, username, role, active, created_at, last_login FROM users ORDER BY id ASC',
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
     res.json(rows);
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -349,15 +445,20 @@ router.post('/users', async (req, res) => {
   if (password.length < 6) return res.status(400).json({ error: 'Password must be 6+ characters' });
   if (!['admin','user','viewer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   try {
-    const db = getPool();
+    const db = getDb();
     const hash = await bcrypt.hash(password, 12);
-    await db.execute(
-      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-      [username, hash, role]
-    );
+    await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+        [username, hash, role], (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
     res.json({ success: true });
   } catch(e) {
-    if (e.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Username already exists' });
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: 'Username already exists' });
     res.status(500).json({ error: e.message });
   }
 });
@@ -369,23 +470,33 @@ router.put('/users/:id', async (req, res) => {
   if (!username) return res.status(400).json({ error: 'Username required' });
   if (!['admin','user','viewer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   try {
-    const db = getPool();
+    const db = getDb();
     if (password) {
       if (password.length < 6) return res.status(400).json({ error: 'Password must be 6+ characters' });
       const hash = await bcrypt.hash(password, 12);
-      await db.execute(
-        'UPDATE users SET username=?, password=?, role=?, active=? WHERE id=?',
-        [username, hash, role, active ? 1 : 0, id]
-      );
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET username=?, password=?, role=?, active=? WHERE id=?',
+          [username, hash, role, active ? 1 : 0, id], (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
     } else {
-      await db.execute(
-        'UPDATE users SET username=?, role=?, active=? WHERE id=?',
-        [username, role, active ? 1 : 0, id]
-      );
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET username=?, role=?, active=? WHERE id=?',
+          [username, role, active ? 1 : 0, id], (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
     }
     res.json({ success: true });
   } catch(e) {
-    if (e.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Username already taken' });
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: 'Username already taken' });
     res.status(500).json({ error: e.message });
   }
 });
@@ -394,14 +505,29 @@ router.put('/users/:id', async (req, res) => {
 router.delete('/users/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    const db = getPool();
+    const db = getDb();
     // Prevent deleting the last admin
-    const [admins] = await db.execute("SELECT COUNT(*) AS cnt FROM users WHERE role='admin' AND active=1");
-    const [target] = await db.execute("SELECT role FROM users WHERE id=?", [id]);
-    if (target[0] && target[0].role === 'admin' && admins[0].cnt <= 1) {
+    const adminCount = await new Promise((resolve, reject) => {
+      db.get("SELECT COUNT(*) AS cnt FROM users WHERE role='admin' AND active=1", (err, row) => {
+        if (err) reject(err);
+        else resolve(row.cnt);
+      });
+    });
+    const target = await new Promise((resolve, reject) => {
+      db.get("SELECT role FROM users WHERE id=?", [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+    if (target && target.role === 'admin' && adminCount <= 1) {
       return res.status(400).json({ error: 'Cannot delete the last admin account' });
     }
-    await db.execute('DELETE FROM users WHERE id=?', [id]);
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM users WHERE id=?', [id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: e.message });
