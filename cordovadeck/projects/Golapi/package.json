@@ -1,6 +1,6 @@
 {
-  "name": "com.greenypopping.gop",
-  "displayName": "gop",
+  "name": "com.example.golapi",
+  "displayName": "Golapi",
   "version": "1.0.0",
   "description": "A sample Apache Cordova application that responds to the deviceready event.",
   "main": "index.js",
@@ -11,13 +11,5 @@
     "ecosystem:cordova"
   ],
   "author": "Apache Cordova Team",
-  "license": "Apache-2.0",
-  "devDependencies": {
-    "cordova-android": "^13.0.0"
-  },
-  "cordova": {
-    "platforms": [
-      "android"
-    ]
-  }
+  "license": "Apache-2.0"
 }
